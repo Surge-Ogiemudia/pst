@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PST Assistant</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d1117;
+      --surface: #161b22;
+      --surface2: #21262d;
+      --border: rgba(255,255,255,0.08);
+      --accent: #00d4aa;
+      --accent2: #00a3ff;
+      --text: #f0f6fc;
+      --muted: #8b949e;
+    }
+
+    html, body {
+      height: 100%;
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 13px;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    /* HEADER */
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 16px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .avatar {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 13px;
+      color: #000;
+      flex-shrink: 0;
+    }
+
+    .header-info { flex: 1; }
+    .header-name { font-weight: 700; font-size: 13px; }
+    .header-status { font-size: 11px; color: var(--accent); display: flex; align-items: center; gap: 5px; }
+    .status-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); animation: pulse 2s infinite; }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; } 50% { opacity: 0.4; }
+    }
+
+    .header-logo {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--muted);
+      letter-spacing: 1px;
+    }
+
+    /* MESSAGES */
+    .messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      scroll-behavior: smooth;
+    }
+
+    .messages::-webkit-scrollbar { width: 4px; }
+    .messages::-webkit-scrollbar-track { background: transparent; }
+    .messages::-webkit-scrollbar-thumb { background: var(--surface2); border-radius: 4px; }
+
+    .msg-row {
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+    }
+
+    .msg-row.user { flex-direction: row-reverse; }
+
+    .msg-avatar {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 800;
+      color: #000;
+      flex-shrink: 0;
+    }
+
+    .bubble {
+      max-width: 82%;
+      padding: 10px 14px;
+      border-radius: 14px;
+      line-height: 1.65;
+      font-size: 13px;
+      animation: fadeSlideIn 0.3s ease;
+    }
+
+    @keyframes fadeSlideIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .bubble-ai {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-bottom-left-radius: 4px;
+      color: var(--text);
+    }
+
+    .bubble-user {
+      background: linear-gradient(135deg, rgba(0,212,170,0.18), rgba(0,163,255,0.18));
+      border: 1px solid rgba(0,212,170,0.25);
+      border-bottom-right-radius: 4px;
+      color: var(--text);
+    }
+
+    /* CHIPS / OPTIONS */
+    .chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .chip {
+      padding: 5px 12px;
+      border-radius: 20px;
+      border: 1px solid rgba(0,212,170,0.3);
+      background: rgba(0,212,170,0.05);
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.18s;
+      user-select: none;
+    }
+
+    .chip:hover, .chip.selected {
+      background: rgba(0,212,170,0.18);
+      border-color: var(--accent);
+    }
+
+    /* TYPING INDICATOR */
+    .typing-indicator {
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+    }
+
+    .typing-bubble {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      border-bottom-left-radius: 4px;
+      padding: 12px 16px;
+      display: flex;
+      gap: 4px;
+      align-items: center;
+    }
+
+    .typing-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--muted);
+      animation: typingBounce 1.2s infinite;
+    }
+
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes typingBounce {
+      0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+      40% { transform: translateY(-5px); opacity: 1; }
+    }
+
+    /* INPUT */
+    .input-area {
+      padding: 12px 16px;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 10px;
+      align-items: flex-end;
+      flex-shrink: 0;
+    }
+
+    textarea {
+      flex: 1;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      padding: 10px 14px;
+      resize: none;
+      min-height: 40px;
+      max-height: 100px;
+      outline: none;
+      transition: border-color 0.2s;
+      line-height: 1.5;
+    }
+
+    textarea:focus { border-color: rgba(0,212,170,0.4); }
+    textarea::placeholder { color: var(--muted); }
+
+    .send-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: all 0.2s;
+    }
+
+    .send-btn:hover { transform: scale(1.05); box-shadow: 0 4px 16px rgba(0,212,170,0.3); }
+    .send-btn:active { transform: scale(0.95); }
+    .send-btn svg { color: #000; }
+
+    /* STATUS BAR */
+    .status-bar {
+      padding: 6px 16px;
+      background: rgba(0,212,170,0.05);
+      border-top: 1px solid rgba(0,212,170,0.1);
+      font-size: 11px;
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <!-- HEADER -->
+    <div class="header">
+      <div class="avatar">P</div>
+      <div class="header-info">
+        <div class="header-name">PST Assistant</div>
+        <div class="header-status">
+          <div class="status-dot"></div>
+          Online — Ready to set up
+        </div>
+      </div>
+      <div class="header-logo">PST v1.0</div>
+    </div>
+
+    <!-- MESSAGES -->
+    <div class="messages" id="messages"></div>
+
+    <!-- STATUS BAR -->
+    <div class="status-bar" id="statusBar" style="display:none">
+      <div class="status-dot"></div>
+      <span id="statusText"></span>
+    </div>
+
+    <!-- INPUT -->
+    <div class="input-area">
+      <textarea id="input" placeholder="Type a message..." rows="1"></textarea>
+      <button class="send-btn" id="sendBtn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+        </svg>
+      </button>
+    </div>
+
+  </div>
+
+  <script>
+    const messagesEl = document.getElementById('messages');
+    const inputEl = document.getElementById('input');
+    const sendBtn = document.getElementById('sendBtn');
+    const statusBar = document.getElementById('statusBar');
+    const statusText = document.getElementById('statusText');
+
+    // Conversation history for multi-turn memory
+    const history = [];
+
+    // System context for the AI
+    const SYSTEM_PROMPT = `You are PST Assistant — the onboarding AI agent for PST (Pharmacy Stack Terminal Connector). 
+Your job is to help pharmacy staff connect their existing PMS (Pharmacy Management Software) to the Pharmacy Stack ecosystem.
+
+You must:
+1. First ask which PMS software they use (give options: VirtualRx, MedPro, HealthTrac, Galen, Bewell, or Other).
+2. Based on their answer, explain that you are now configuring the connector for their specific software.
+3. Tell them their inventory is being synced and ask them to confirm one sample product looks correct.
+4. Once they confirm, tell them setup is complete and they are now live on Pharmacy Stack.
+5. After setup, answer any pharmacy-related questions they have about their data.
+
+Be warm, concise, and non-technical. Never use jargon. Use short sentences.
+When giving PMS options, put them on a new line each prefixed with a bullet.
+If they say something is wrong, apologize and ask them to clarify what PMS they actually use.
+Always end your first message by listing PMS options.`;
+
+    function setStatus(text) {
+      if (text) {
+        statusBar.style.display = 'flex';
+        statusText.textContent = text;
+      } else {
+        statusBar.style.display = 'none';
+      }
+    }
+
+    function scrollBottom() {
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function addMessage(role, content, chips = []) {
+      const row = document.createElement('div');
+      row.className = `msg-row ${role === 'user' ? 'user' : 'ai'}`;
+
+      if (role === 'ai') {
+        const av = document.createElement('div');
+        av.className = 'msg-avatar';
+        av.textContent = 'P';
+        row.appendChild(av);
+      }
+
+      const bubble = document.createElement('div');
+      bubble.className = `bubble bubble-${role}`;
+      bubble.innerHTML = content.replace(/\n/g, '<br/>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
+      if (chips.length > 0) {
+        const chipRow = document.createElement('div');
+        chipRow.className = 'chip-row';
+        chips.forEach(label => {
+          const chip = document.createElement('div');
+          chip.className = 'chip';
+          chip.textContent = label;
+          chip.addEventListener('click', () => {
+            document.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
+            chip.classList.add('selected');
+            setTimeout(() => sendMessage(label), 300);
+          });
+          chipRow.appendChild(chip);
+        });
+        bubble.appendChild(chipRow);
+      }
+
+      row.appendChild(bubble);
+      messagesEl.appendChild(row);
+      scrollBottom();
+    }
+
+    function showTyping() {
+      const row = document.createElement('div');
+      row.className = 'typing-indicator';
+      row.id = 'typingRow';
+
+      const av = document.createElement('div');
+      av.className = 'msg-avatar';
+      av.textContent = 'P';
+
+      const tb = document.createElement('div');
+      tb.className = 'typing-bubble';
+      for (let i = 0; i < 3; i++) {
+        const dot = document.createElement('div');
+        dot.className = 'typing-dot';
+        tb.appendChild(dot);
+      }
+
+      row.appendChild(av);
+      row.appendChild(tb);
+      messagesEl.appendChild(row);
+      scrollBottom();
+    }
+
+    function hideTyping() {
+      const el = document.getElementById('typingRow');
+      if (el) el.remove();
+    }
+
+    // Extract chips from AI text like "• VirtualRx" lines
+    function parseChips(text) {
+      const lines = text.split('\n');
+      const chips = [];
+      const cleanLines = [];
+      lines.forEach(line => {
+        const trimmed = line.trim();
+        if (trimmed.startsWith('•') || trimmed.startsWith('-') || trimmed.startsWith('*')) {
+          const chip = trimmed.replace(/^[•\-*]\s*/, '').trim();
+          if (chip) chips.push(chip);
+        } else {
+          cleanLines.push(line);
+        }
+      });
+      return { text: cleanLines.join('\n').trim(), chips };
+    }
+
+    async function sendMessage(text) {
+      const msg = text || inputEl.value.trim();
+      if (!msg) return;
+
+      inputEl.value = '';
+      inputEl.style.height = 'auto';
+      addMessage('user', msg);
+      history.push({ role: 'user', content: msg });
+
+      showTyping();
+      sendBtn.disabled = true;
+      setStatus('PST Assistant is thinking...');
+
+      try {
+        const response = await fetch('http://localhost:3001/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ history, systemPrompt: SYSTEM_PROMPT })
+        });
+
+        const data = await response.json();
+        hideTyping();
+        setStatus(null);
+
+        const aiText = data.reply || "Sorry, I couldn't process that. Please try again.";
+        const { text: cleanText, chips } = parseChips(aiText);
+
+        history.push({ role: 'model', content: aiText });
+        addMessage('ai', cleanText, chips);
+
+        // If AI mentions syncing — show a status bar update
+        if (aiText.toLowerCase().includes('sync') || aiText.toLowerCase().includes('inventory')) {
+          setStatus('Connector is syncing your inventory...');
+          setTimeout(() => setStatus(null), 4000);
+        }
+
+      } catch (err) {
+        hideTyping();
+        setStatus(null);
+        addMessage('ai', "I'm having trouble connecting to the PST server. Make sure the PST Connector is running on your computer.");
+      }
+
+      sendBtn.disabled = false;
+    }
+
+    // Send on Enter (Shift+Enter for newline)
+    inputEl.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+
+    // Auto-resize textarea
+    inputEl.addEventListener('input', () => {
+      inputEl.style.height = 'auto';
+      inputEl.style.height = Math.min(inputEl.scrollHeight, 100) + 'px';
+    });
+
+    sendBtn.addEventListener('click', () => sendMessage());
+
+    // Boot: AI sends first message automatically
+    window.addEventListener('load', async () => {
+      showTyping();
+      setStatus('Connecting to PST Assistant...');
+      try {
+        const response = await fetch('http://localhost:3001/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            history: [],
+            systemPrompt: SYSTEM_PROMPT,
+            boot: true
+          })
+        });
+        const data = await response.json();
+        hideTyping();
+        setStatus(null);
+        const { text: cleanText, chips } = parseChips(data.reply || '');
+        history.push({ role: 'model', content: data.reply });
+        addMessage('ai', cleanText, chips);
+      } catch (e) {
+        hideTyping();
+        setStatus(null);
+        addMessage('ai', "Hi! I'm your PST setup assistant. Which pharmacy software are you currently using?", [
+          'VirtualRx', 'MedPro', 'HealthTrac', 'Galen', 'Bewell', 'Other'
+        ]);
+      }
+    });
+  </script>
+</body>
+</html>
