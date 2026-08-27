@@ -24,9 +24,13 @@ module.exports = async (req, res) => {
             systemInstruction: systemPrompt
         });
 
-        // Map history to Gemini format, excluding the last user message if booting
-        const chatHistory = history.map(h => ({
-            role: h.role,
+        // The last item in history is the user's current message, which we send via chat.sendMessage()
+        // Gemini requires strict alternating history, so we must exclude it from startChat's history
+        const previousHistory = history.slice(0, -1);
+        
+        // Map history to Gemini format
+        const chatHistory = previousHistory.map(h => ({
+            role: h.role === 'assistant' ? 'model' : h.role,
             parts: [{ text: h.content }]
         }));
 
