@@ -435,7 +435,7 @@ Always end your first message by listing PMS options.`;
       setStatus('PST Assistant is thinking...');
 
       try {
-        const response = await fetch('http://localhost:3001/chat', {
+        const response = await fetch('/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ history, systemPrompt: SYSTEM_PROMPT })
@@ -487,7 +487,7 @@ Always end your first message by listing PMS options.`;
       showTyping();
       setStatus('Connecting to PST Assistant...');
       try {
-        const response = await fetch('http://localhost:3001/chat', {
+        const response = await fetch('/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
