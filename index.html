@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PST — Pharmacy Stack Terminal Connector</title>
+  <meta name="description" content="Connect any pharmacy software to Pharmacy Stack in minutes. No technical knowledge required." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #030712;
+      --surface: #0d1117;
+      --surface2: #161b22;
+      --border: rgba(255,255,255,0.07);
+      --accent: #00d4aa;
+      --accent2: #00a3ff;
+      --text: #f0f6fc;
+      --muted: #8b949e;
+      --danger: #ff4757;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* GRID BACKGROUND */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0,212,170,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,212,170,0.03) 1px, transparent 1px);
+      background-size: 60px 60px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* NAV */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 60px;
+      background: rgba(3,7,18,0.8);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }
+
+    .logo-icon {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 900;
+      color: #000;
+    }
+
+    nav a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+
+    nav a:hover { color: var(--text); }
+
+    .nav-links { display: flex; gap: 32px; }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.2s;
+      border: none;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #000;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 32px rgba(0,212,170,0.3);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-ghost:hover {
+      background: var(--surface2);
+    }
+
+    /* HERO */
+    .hero {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 120px 40px 80px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      border-radius: 100px;
+      background: rgba(0,212,170,0.1);
+      border: 1px solid rgba(0,212,170,0.2);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--accent);
+      margin-bottom: 32px;
+      letter-spacing: 0.5px;
+    }
+
+    .badge-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.8); }
+    }
+
+    h1 {
+      font-size: clamp(42px, 7vw, 80px);
+      font-weight: 900;
+      line-height: 1.05;
+      letter-spacing: -2px;
+      max-width: 900px;
+      margin-bottom: 24px;
+    }
+
+    h1 span {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-sub {
+      font-size: 18px;
+      color: var(--muted);
+      max-width: 560px;
+      line-height: 1.7;
+      margin-bottom: 48px;
+    }
+
+    .hero-cta {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-bottom: 80px;
+    }
+
+    .btn-download {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #000;
+      padding: 16px 32px;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      transition: all 0.3s;
+      box-shadow: 0 0 0 0 rgba(0,212,170,0.4);
+    }
+
+    .btn-download:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 16px 48px rgba(0,212,170,0.35);
+    }
+
+    /* TERMINAL MOCKUP */
+    .terminal {
+      width: 100%;
+      max-width: 700px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 40px 120px rgba(0,0,0,0.6);
+    }
+
+    .terminal-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 20px;
+      background: var(--surface2);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .terminal-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+
+    .terminal-body {
+      padding: 24px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      line-height: 2;
+    }
+
+    .t-muted { color: var(--muted); }
+    .t-green { color: var(--accent); }
+    .t-blue { color: var(--accent2); }
+    .t-white { color: var(--text); }
+    .t-yellow { color: #ffd60a; }
+
+    .typing::after {
+      content: '|';
+      animation: blink 1s infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+
+    /* SECTION */
+    section {
+      position: relative;
+      z-index: 1;
+      padding: 100px 60px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .section-label {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 16px;
+    }
+
+    .section-title {
+      font-size: clamp(28px, 4vw, 48px);
+      font-weight: 800;
+      letter-spacing: -1px;
+      margin-bottom: 16px;
+    }
+
+    .section-sub {
+      font-size: 16px;
+      color: var(--muted);
+      max-width: 560px;
+      line-height: 1.7;
+    }
+
+    /* HOW IT WORKS */
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 24px;
+      margin-top: 60px;
+    }
+
+    .step-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px;
+      position: relative;
+      transition: all 0.3s;
+    }
+
+    .step-card:hover {
+      border-color: rgba(0,212,170,0.3);
+      transform: translateY(-4px);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    }
+
+    .step-num {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      color: var(--accent);
+      margin-bottom: 16px;
+    }
+
+    .step-icon {
+      font-size: 32px;
+      margin-bottom: 16px;
+    }
+
+    .step-card h3 {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    .step-card p {
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+
+    /* COMPATIBILITY */
+    .compat-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-top: 60px;
+    }
+
+    .compat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      transition: all 0.2s;
+    }
+
+    .compat-card:hover {
+      border-color: rgba(0,212,170,0.2);
+    }
+
+    .compat-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    .compat-card h4 {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+
+    .compat-card p {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    /* DOWNLOAD SECTION */
+    .download-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 60px;
+      text-align: center;
+      margin: 0 60px 100px;
+      position: relative;
+      z-index: 1;
+      overflow: hidden;
+    }
+
+    .download-section::before {
+      content: '';
+      position: absolute;
+      top: -100px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(0,212,170,0.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .download-section h2 {
+      font-size: 40px;
+      font-weight: 800;
+      letter-spacing: -1px;
+      margin-bottom: 16px;
+    }
+
+    .download-section p {
+      color: var(--muted);
+      font-size: 16px;
+      margin-bottom: 40px;
+    }
+
+    .os-info {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 16px;
+    }
+
+    /* CHAT PREVIEW */
+    .chat-preview {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      max-width: 400px;
+      margin: 0 auto;
+      box-shadow: 0 40px 100px rgba(0,0,0,0.5);
+    }
+
+    .chat-header {
+      background: var(--surface2);
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .chat-avatar {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 700;
+      color: #000;
+    }
+
+    .chat-name {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .chat-status {
+      font-size: 11px;
+      color: var(--accent);
+    }
+
+    .chat-messages {
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .msg {
+      max-width: 85%;
+      padding: 12px 16px;
+      border-radius: 12px;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .msg-ai {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      align-self: flex-start;
+      border-bottom-left-radius: 4px;
+    }
+
+    .msg-user {
+      background: linear-gradient(135deg, rgba(0,212,170,0.15), rgba(0,163,255,0.15));
+      border: 1px solid rgba(0,212,170,0.2);
+      align-self: flex-end;
+      border-bottom-right-radius: 4px;
+      color: var(--text);
+    }
+
+    .pms-options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .pms-opt {
+      padding: 6px 12px;
+      border-radius: 20px;
+      border: 1px solid rgba(0,212,170,0.3);
+      font-size: 12px;
+      color: var(--accent);
+      cursor: pointer;
+      transition: all 0.2s;
+      background: rgba(0,212,170,0.05);
+    }
+
+    .pms-opt:hover {
+      background: rgba(0,212,170,0.15);
+    }
+
+    /* FOOTER */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 40px 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: relative;
+      z-index: 1;
+    }
+
+    footer p {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    /* GLOW ORBS */
+    .orb {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(120px);
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.12;
+    }
+
+    .orb-1 {
+      width: 600px;
+      height: 600px;
+      background: var(--accent);
+      top: -200px;
+      right: -200px;
+    }
+
+    .orb-2 {
+      width: 500px;
+      height: 500px;
+      background: var(--accent2);
+      bottom: -100px;
+      left: -100px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+
+  <!-- NAV -->
+  <nav>
+    <div class="logo">
+      <div class="logo-icon">P</div>
+      PST
+    </div>
+    <div class="nav-links">
+      <a href="#how">How it works</a>
+      <a href="#compatibility">Compatibility</a>
+      <a href="#download">Download</a>
+    </div>
+    <a href="#download" class="btn btn-primary">Download Free</a>
+  </nav>
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="badge">
+      <div class="badge-dot"></div>
+      NOW IN PRIVATE BETA
+    </div>
+
+    <h1>Connect <span>Any Pharmacy</span><br/>to the Stack</h1>
+
+    <p class="hero-sub">
+      PST bridges the gap between your existing pharmacy software and Pharmacy Stack. Install once. Sync forever. No IT team required.
+    </p>
+
+    <div class="hero-cta">
+      <a href="#download" class="btn-download" id="downloadBtn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+        Download PST for Windows
+      </a>
+      <a href="#how" class="btn btn-ghost">See how it works</a>
+    </div>
+
+    <!-- TERMINAL -->
+    <div class="terminal">
+      <div class="terminal-bar">
+        <div class="terminal-dot" style="background:#ff5f57"></div>
+        <div class="terminal-dot" style="background:#febc2e"></div>
+        <div class="terminal-dot" style="background:#28c840"></div>
+        <span style="font-size:12px;color:var(--muted);margin-left:12px">PST Connector — Running</span>
+      </div>
+      <div class="terminal-body">
+        <div class="t-muted">// PST v1.0 — Pharmacy Stack Terminal Connector</div>
+        <div><span class="t-green">[OK]</span> <span class="t-white">Desktop Connector service started</span></div>
+        <div><span class="t-green">[OK]</span> <span class="t-white">Chrome Extension injected successfully</span></div>
+        <div><span class="t-blue">[SCAN]</span> <span class="t-white">Detecting PMS software...</span></div>
+        <div><span class="t-green">[FOUND]</span> <span class="t-yellow">VirtualRx detected on this machine</span></div>
+        <div><span class="t-blue">[SYNC]</span> <span class="t-white">Pulling initial inventory...</span></div>
+        <div><span class="t-green">[DONE]</span> <span class="t-white">1,199 products synced to Pharmacy Stack</span></div>
+        <div><span class="t-green">[LIVE]</span> <span class="t-white">Monitoring for real-time sales deltas</span> <span class="typing"></span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HOW IT WORKS -->
+  <section id="how">
+    <div class="section-label">How it works</div>
+    <h2 class="section-title">From install to synced<br/>in under 3 minutes</h2>
+    <p class="section-sub">PST handles the complexity so your pharmacist doesn't have to.</p>
+
+    <div class="steps">
+      <div class="step-card">
+        <div class="step-num">STEP 01</div>
+        <div class="step-icon">⬇️</div>
+        <h3>Download & Run</h3>
+        <p>Download the PST installer and double-click it. That's the only technical thing you'll ever do.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num">STEP 02</div>
+        <div class="step-icon">🤖</div>
+        <h3>Answer One Question</h3>
+        <p>Our AI assistant opens and asks which software your pharmacy uses. One click. Done.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num">STEP 03</div>
+        <div class="step-icon">⚡</div>
+        <h3>Instant Sync</h3>
+        <p>PST automatically extracts your full inventory and starts monitoring every sale in real time.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num">STEP 04</div>
+        <div class="step-icon">📊</div>
+        <h3>Live Dashboard</h3>
+        <p>Log into your Pharmacy Stack dashboard to see your unified inventory, sales, and alerts from anywhere.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- AI CHAT PREVIEW -->
+  <section style="padding-top:0">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:80px;align-items:center">
+      <div>
+        <div class="section-label">AI Onboarding</div>
+        <h2 class="section-title">The AI does the setup for you</h2>
+        <p class="section-sub">No manuals. No IT calls. Our AI agent walks every pharmacist through the entire setup through a simple chat — and fixes itself if anything goes wrong.</p>
+      </div>
+      <div class="chat-preview">
+        <div class="chat-header">
+          <div class="chat-avatar">P</div>
+          <div>
+            <div class="chat-name">PST Assistant</div>
+            <div class="chat-status">● Online</div>
+          </div>
+        </div>
+        <div class="chat-messages">
+          <div class="msg msg-ai">
+            Hi! I'm your PST setup assistant. I just installed on your computer. Which pharmacy software are you currently using?
+            <div class="pms-options">
+              <span class="pms-opt">VirtualRx</span>
+              <span class="pms-opt">MedPro</span>
+              <span class="pms-opt">HealthTrac</span>
+              <span class="pms-opt">Galen</span>
+              <span class="pms-opt">Other →</span>
+            </div>
+          </div>
+          <div class="msg msg-user">VirtualRx</div>
+          <div class="msg msg-ai">
+            Perfect! I can see 1,199 products in your VirtualRx catalog. Does <strong>Amoxicillin 500mg at ₦1,500</strong> look correct?
+          </div>
+          <div class="msg msg-user">Yes, that's right</div>
+          <div class="msg msg-ai">
+            ✅ All done! Your pharmacy is now live on Pharmacy Stack. I'll keep syncing in the background automatically.
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- COMPATIBILITY -->
+  <section id="compatibility">
+    <div class="section-label">Compatibility</div>
+    <h2 class="section-title">Works with every PMS<br/>on the market</h2>
+    <p class="section-sub">PST was built to handle every type of pharmacy software — from modern cloud apps to ancient offline systems.</p>
+
+    <div class="compat-grid">
+      <div class="compat-card">
+        <div class="compat-icon" style="background:rgba(0,212,170,0.1)">🌐</div>
+        <div>
+          <h4>Web-Based PMS</h4>
+          <p>VirtualRx, HealthTrac, Bewell</p>
+        </div>
+      </div>
+      <div class="compat-card">
+        <div class="compat-icon" style="background:rgba(0,163,255,0.1)">☁️</div>
+        <div>
+          <h4>Cloud Desktop Apps</h4>
+          <p>Electron apps, desktop clients</p>
+        </div>
+      </div>
+      <div class="compat-card">
+        <div class="compat-icon" style="background:rgba(255,215,10,0.1)">🖥️</div>
+        <div>
+          <h4>Hybrid Local PMS</h4>
+          <p>LAN-hosted, IP-based systems</p>
+        </div>
+      </div>
+      <div class="compat-card">
+        <div class="compat-icon" style="background:rgba(255,71,87,0.1)">💾</div>
+        <div>
+          <h4>Fully Offline PMS</h4>
+          <p>SQLite, MySQL, MS Access DBs</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DOWNLOAD -->
+  <div class="download-section" id="download">
+    <div class="badge" style="margin:0 auto 24px">
+      <div class="badge-dot"></div>
+      FREE DURING BETA
+    </div>
+    <h2>Ready to connect<br/>your pharmacy?</h2>
+    <p>Download PST and be live on Pharmacy Stack in under 3 minutes.</p>
+    <a href="pst-setup.exe" class="btn-download" download>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+      Download PST for Windows
+    </a>
+    <p class="os-info">Windows 10/11 · 64-bit · v1.0.0 · Free</p>
+  </div>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="logo">
+      <div class="logo-icon">P</div>
+      PST
+    </div>
+    <p>© 2026 Pharmacy Stack. Private Beta.</p>
+    <p style="font-size:12px;color:var(--muted)">A Pharmacy Stack product</p>
+  </footer>
+
+  <script>
+    // Animate terminal lines in on load
+    document.querySelectorAll('.terminal-body div').forEach((line, i) => {
+      line.style.opacity = '0';
+      line.style.transform = 'translateX(-10px)';
+      setTimeout(() => {
+        line.style.transition = 'all 0.4s ease';
+        line.style.opacity = '1';
+        line.style.transform = 'translateX(0)';
+      }, 400 + i * 300);
+    });
+
+    // PMS option click
+    document.querySelectorAll('.pms-opt').forEach(opt => {
+      opt.addEventListener('click', function() {
+        document.querySelectorAll('.pms-opt').forEach(o => o.style.background = '');
+        this.style.background = 'rgba(0,212,170,0.2)';
+        this.style.borderColor = 'var(--accent)';
+      });
+    });
+  </script>
+</body>
+</html>
