@@ -500,6 +500,7 @@ Always end your first message by listing PMS options.`;
         hideTyping();
         setStatus(null);
         const { text: cleanText, chips } = parseChips(data.reply || '');
+        history.push({ role: 'user', content: 'Start the onboarding. Greet the pharmacist warmly and ask which PMS software they use. List the options as bullet points prefixed with •' });
         history.push({ role: 'model', content: data.reply });
         addMessage('ai', cleanText, chips);
       } catch (e) {
