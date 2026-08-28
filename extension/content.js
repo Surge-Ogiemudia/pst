@@ -27,9 +27,133 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
   // CDP events come from background.js -> content.js -> sidepanel
   if (msg.action === "CDP_SALE_DETECTED") {
-    chrome.runtime.sendMessage({ action: "SALE_DETECTED", data: msg.data });
+    const parsed = parseSaleData(msg.data.reqBody, msg.data.payload);
+    chrome.runtime.sendMessage({ 
+      action: "SALE_DETECTED", 
+      data: { 
+        url: msg.data.url,
+        method: msg.data.method,
+        reqBody: msg.data.reqBody,
+        payload: msg.data.payload,
+        parsed: parsed  // { items: [...], source: 'json'|'html'|'unknown' }
+      } 
+    });
   }
 });
+
+// =============================================
+// Universal Sale Data Parser
+// =============================================
+function parseSaleData(reqBody, payload) {
+  // Strategy 1: Find a JSON array of line items anywhere in the response
+  const jsonItems = findItemsArray(payload) || findItemsArray(reqBody);
+  if (jsonItems && jsonItems.length > 0) {
+    return { items: jsonItems, source: 'json' };
+  }
+
+  // Strategy 2: Find an HTML string anywhere in the response and parse its table
+  const htmlItems = findHtmlTableItems(payload) || findHtmlTableItems(reqBody);
+  if (htmlItems && htmlItems.length > 0) {
+    return { items: htmlItems, source: 'html' };
+  }
+
+  return { items: [], source: 'unknown' };
+}
+
+// Recursively search an object for an array that looks like line items
+function findItemsArray(obj, depth = 0) {
+  if (!obj || typeof obj !== 'object' || depth > 6) return null;
+  
+  if (Array.isArray(obj)) {
+    if (obj.length > 0 && typeof obj[0] === 'object' && looksLikeLineItem(obj[0])) {
+      return obj.map(normalizeItem);
+    }
+  } else {
+    for (const key of Object.keys(obj)) {
+      const result = findItemsArray(obj[key], depth + 1);
+      if (result) return result;
+    }
+  }
+  return null;
+}
+
+const NAME_KEYS   = ['name','product','product_name','item','item_name','description','drug','medicine'];
+const QTY_KEYS    = ['qty','quantity','units','count','amount_qty','quantity_sold'];
+const PRICE_KEYS  = ['price','unit_price','rate','cost','selling_price','retail_price','subtotal','sub_total'];
+
+function looksLikeLineItem(obj) {
+  const keys = Object.keys(obj).map(k => k.toLowerCase());
+  const hasName  = NAME_KEYS.some(k  => keys.includes(k));
+  const hasQty   = QTY_KEYS.some(k   => keys.includes(k));
+  const hasPrice = PRICE_KEYS.some(k => keys.includes(k));
+  return (hasName && hasQty) || (hasName && hasPrice) || (hasQty && hasPrice);
+}
+
+function normalizeItem(obj) {
+  const keys = Object.keys(obj);
+  const findVal = (candidates) => {
+    for (const c of candidates) {
+      const match = keys.find(k => k.toLowerCase() === c);
+      if (match !== undefined && obj[match] !== null && obj[match] !== undefined) return obj[match];
+    }
+    return '-';
+  };
+  return {
+    name:  findVal(NAME_KEYS),
+    qty:   findVal(QTY_KEYS),
+    price: findVal(PRICE_KEYS)
+  };
+}
+
+// Find any HTML string in the object and extract its largest table
+function findHtmlTableItems(obj, depth = 0) {
+  if (!obj || depth > 6) return null;
+  if (typeof obj === 'string' && obj.includes('<table')) {
+    return extractTableFromHtml(obj);
+  }
+  if (typeof obj === 'object') {
+    for (const key of Object.keys(obj)) {
+      const result = findHtmlTableItems(obj[key], depth + 1);
+      if (result) return result;
+    }
+  }
+  return null;
+}
+
+function extractTableFromHtml(htmlStr) {
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(htmlStr, 'text/html');
+    const tables = Array.from(doc.querySelectorAll('table'));
+    if (!tables.length) return null;
+    
+    // Pick the largest table
+    const table = tables.reduce((a, b) => 
+      b.querySelectorAll('tr').length > a.querySelectorAll('tr').length ? b : a
+    );
+    
+    const headers = Array.from(table.querySelectorAll('th')).map(th => th.innerText || th.textContent).map(h => h.trim());
+    const rows = Array.from(table.querySelectorAll('tbody tr, tr')).map(tr => {
+      return Array.from(tr.querySelectorAll('td')).map(td => (td.innerText || td.textContent).trim().replace(/\s+/g, ' '));
+    }).filter(r => r.length > 1);
+    
+    if (!rows.length) return null;
+    
+    // Map rows using detected headers
+    return rows.map(row => {
+      const obj = {};
+      headers.forEach((h, i) => { obj[h] = row[i] || '-'; });
+      const normalized = normalizeItem(obj);
+      // If normalizeItem couldn't match, just use positional
+      if (normalized.name === '-' && normalized.qty === '-') {
+        return { name: row[0] || '-', qty: row[1] || '-', price: row[2] || '-' };
+      }
+      return normalized;
+    });
+  } catch(e) {
+    return null;
+  }
+}
 
 async function startAutoScrape(paginationSelector) {
   isScraping = true;

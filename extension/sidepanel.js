@@ -111,27 +111,32 @@ document.addEventListener("DOMContentLoaded", () => {
       card.style.borderRadius = "6px";
       card.style.fontSize = "12px";
 
-      // Combine reqBody and payload for the preview
-      const rawData = {
-        request: msg.data.reqBody || null,
-        response: msg.data.payload || null
-      };
-      
-      const rawJson = JSON.stringify(rawData, null, 2);
-      
-      let endpointName = msg.data.url.split('?')[0].split('/').pop();
+      const parsed = msg.data.parsed || { items: [], source: 'unknown' };
+      let endpointName = (msg.data.url || '').split('?')[0].split('/').pop();
       if (!endpointName || endpointName.length < 2) endpointName = "Endpoint";
-      
-      card.innerHTML = `
-        <p style="font-weight:600; margin-bottom:8px; color:var(--primary); word-break: break-all;">
-          ${msg.data.method} /${endpointName}
-        </p>
-        <pre style="background:#000; color:#00ff00; padding:8px; border-radius:4px; max-height:100px; overflow:auto; margin-bottom:12px; font-family:monospace; font-size:11px;">${rawJson}</pre>
-        <button class="btn btn-secondary btn-select-sale" style="width:100%; padding:6px; background:var(--surface2);">This is the final receipt!</button>
-      `;
+
+      let innerHtml = `<p style="font-weight:600; margin-bottom:8px; color:var(--accent); word-break:break-all;">${msg.data.method} /${endpointName}</p>`;
+
+      if (parsed.items.length > 0) {
+        const badge = parsed.source === 'json' ? '🟢 JSON' : '🟡 HTML Receipt';
+        innerHtml += `<p style="color:var(--muted); font-size:11px; margin-bottom:6px;">Detected via ${badge}</p>`;
+        innerHtml += `<table style="width:100%; border-collapse:collapse; margin-bottom:10px; font-size:11px;">`;
+        innerHtml += `<tr style="color:var(--muted);"><th style="text-align:left; padding:4px;">Item</th><th style="text-align:right; padding:4px;">Qty</th><th style="text-align:right; padding:4px;">Price</th></tr>`;
+        parsed.items.forEach(item => {
+          innerHtml += `<tr style="border-top:1px solid var(--border);"><td style="padding:4px;">${item.name}</td><td style="text-align:right; padding:4px;">${item.qty}</td><td style="text-align:right; padding:4px;">${item.price}</td></tr>`;
+        });
+        innerHtml += `</table>`;
+        innerHtml += `<button class="btn btn-primary btn-select-sale" style="width:100%; padding:6px;">✅ This is my receipt!</button>`;
+      } else {
+        const rawJson = JSON.stringify({ request: msg.data.reqBody, response: msg.data.payload }, null, 2);
+        innerHtml += `<pre style="background:#000; color:#00ff00; padding:8px; border-radius:4px; max-height:80px; overflow:auto; margin-bottom:8px; font-family:monospace; font-size:10px;">${rawJson.substring(0, 600)}${rawJson.length > 600 ? '...' : ''}</pre>`;
+        innerHtml += `<p style="color:var(--muted); font-size:11px; margin-bottom:8px;">Could not auto-detect items. Is this your sale?</p>`;
+        innerHtml += `<button class="btn btn-secondary btn-select-sale" style="width:100%; padding:6px;">This is the final receipt!</button>`;
+      }
+
+      card.innerHTML = innerHtml;
 
       card.querySelector(".btn-select-sale").addEventListener("click", () => {
-         // lock it in and go to step 3
          step2.classList.remove("active");
          step2.classList.add("completed");
          step3.classList.add("active");
