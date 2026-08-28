@@ -145,6 +145,18 @@ document.addEventListener("DOMContentLoaded", () => {
          step2.classList.remove("active");
          step2.classList.add("completed");
          step3.classList.add("active");
+         
+         // Add sale to local backup queue and trigger sync
+         chrome.storage.local.get({ unsyncedSales: [] }, (data) => {
+           const newSale = {
+             items: parsed.items,
+             source: parsed.source,
+             timestamp: Date.now()
+           };
+           chrome.storage.local.set({ unsyncedSales: [...data.unsyncedSales, newSale] }, () => {
+             chrome.runtime.sendMessage({ action: 'TRIGGER_SYNC' });
+           });
+         });
       });
 
       feed.prepend(card);
@@ -156,6 +168,11 @@ document.addEventListener("DOMContentLoaded", () => {
     step1.classList.remove("active");
     step1.classList.add("completed");
     step2.classList.add("active");
+    
+    // Save inventory to local backup queue and trigger sync
+    chrome.storage.local.set({ unsyncedInventory: rawRows }, () => {
+      chrome.runtime.sendMessage({ action: 'TRIGGER_SYNC' });
+    });
   });
 
   // Column Mapping Logic
