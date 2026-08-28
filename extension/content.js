@@ -104,17 +104,30 @@ function scoreLineItemArray(arr) {
 
 function normalizeItem(obj) {
   const keys = Object.keys(obj);
-  const findVal = (candidates) => {
+  const findVal = (candidates, preferNumber = false) => {
+    // Pass 1: Exact matches
+    for (const c of candidates) {
+      const match = keys.find(k => k.toLowerCase() === c);
+      if (match !== undefined && obj[match] !== null && obj[match] !== undefined) return obj[match];
+    }
+    // Pass 2: Substring matches
     for (const c of candidates) {
       const match = keys.find(k => k.toLowerCase().includes(c));
-      if (match !== undefined && obj[match] !== null && obj[match] !== undefined) return obj[match];
+      if (match !== undefined && obj[match] !== null && obj[match] !== undefined) {
+        const val = obj[match];
+        // If we want a number but this is obviously a word (like "retail"), skip it
+        if (preferNumber && typeof val === 'string' && isNaN(parseFloat(val.replace(/[^0-9.-]+/g,"")))) {
+          continue;
+        }
+        return val;
+      }
     }
     return '-';
   };
   return {
-    name:  findVal(NAME_KEYS),
-    qty:   findVal(QTY_KEYS),
-    price: findVal(PRICE_KEYS)
+    name:  findVal(NAME_KEYS, false),
+    qty:   findVal(QTY_KEYS, true),
+    price: findVal(PRICE_KEYS, true)
   };
 }
 
