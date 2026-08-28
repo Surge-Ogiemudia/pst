@@ -214,27 +214,42 @@ window.addEventListener("message", (event) => {
     const payload = event.data.payload;
     const reqBody = event.data.reqBody || {};
     const method = event.data.method || 'GET';
+    const url = (event.data.url || '').toLowerCase();
     
+    // We only care about POST or PUT requests for sales
+    if (method !== 'POST' && method !== 'PUT') return;
+
     let items = [];
     
-    // Attempt to extract items (mock extraction)
-    if (Array.isArray(payload)) {
+    if (Array.isArray(payload) && payload.length > 0 && typeof payload[0] === 'object') {
       items = payload;
-    } else if (payload && payload.items) {
+    } else if (payload && Array.isArray(payload.items)) {
       items = payload.items;
-    } else if (Array.isArray(reqBody)) {
+    } else if (Array.isArray(reqBody) && reqBody.length > 0 && typeof reqBody[0] === 'object') {
       items = reqBody;
-    } else if (reqBody && reqBody.items) {
+    } else if (reqBody && Array.isArray(reqBody.items)) {
       items = reqBody.items;
+    }
+
+    const strPayload = JSON.stringify(payload || {}).toLowerCase();
+    const strReq = JSON.stringify(reqBody || {}).toLowerCase();
+    
+    // Heuristic: Does this request look like a sale/cart/checkout?
+    const looksLikeSale = 
+      url.includes('sale') || url.includes('checkout') || url.includes('order') || url.includes('invoice') || url.includes('cart') || url.includes('pos') ||
+      (strPayload.includes('qty') || strPayload.includes('quantity')) ||
+      (strReq.includes('qty') || strReq.includes('quantity')) ||
+      (strReq.includes('price') || strReq.includes('amount') || strReq.includes('total'));
+
+    if (!looksLikeSale && items.length === 0) {
+      return; // Ignore this POST request, it's probably analytics or a heartbeat
     }
 
     if (items.length > 0) {
       items = items.map(i => ({ name: i.name || i.id || "Item", qty: i.qty || i.quantity || 1, price: i.price || i.amount || 0 }));
-    } else if (method === 'POST') {
-      // Just mock it if we can't parse it for the demo but we know it was a POST
-      items = [{ name: "Mock Sale Item", qty: 1, price: (payload && (payload.total || payload.amount)) || (reqBody && (reqBody.total || reqBody.amount)) || "N/A" }];
     } else {
-      return; // Ignore random GET requests that don't have items
+      // We know it looks like a sale, but we couldn't parse the array. Mock it.
+      items = [{ name: "Mock Sale Item", qty: 1, price: (payload && (payload.total || payload.amount)) || (reqBody && (reqBody.total || reqBody.amount)) || "N/A" }];
     }
 
     chrome.runtime.sendMessage({ action: "SALE_DETECTED", data: { items } });
