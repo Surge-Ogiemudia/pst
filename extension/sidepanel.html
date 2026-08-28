@@ -156,17 +156,15 @@
           <div class="step-num">2</div>
           <div class="step-title">Mock Sale Test</div>
         </div>
-        <p class="desc">Please perform a mock sale in your software right now. We are silently watching the network for the receipt.</p>
+        <p class="desc">Please perform a full checkout in your software right now. We are silently watching the network for the receipt data.</p>
         
         <div class="alert alert-info" id="listeningAlert" style="display:block;">Listening for network responses...</div>
-        <div class="alert alert-success" id="saleSuccessAlert">Sale captured successfully!</div>
 
-        <table class="table-preview" id="saleTable">
-          <thead><tr><th>Item</th><th>Qty</th><th>Total</th></tr></thead>
-          <tbody id="saleBody"></tbody>
-        </table>
+        <div id="networkFeed" style="margin-top:12px; display:flex; flex-direction:column; gap:10px; max-height: 250px; overflow-y: auto;">
+          <!-- Network event cards injected here -->
+        </div>
 
-        <div class="btn-group" id="s2-confirm-btns" style="display:none; margin-top:12px;">
+        <div class="btn-group" id="s2-confirm-btns" style="margin-top:12px;">
           <button class="btn btn-primary" id="btnConfirmSale">Confirm & Finish</button>
         </div>
       </div>

@@ -98,21 +98,36 @@ document.addEventListener("DOMContentLoaded", () => {
       s1ConfirmBtns.style.display = "flex";
     }
 
-    if (msg.action === "SALE_DETECTED" && step2.classList.contains("active")) {
-      listeningAlert.style.display = "none";
-      saleSuccessAlert.style.display = "block";
+    if (msg.action === "SALE_DETECTED") {
+      const listeningAlert = document.getElementById("listeningAlert");
+      if (listeningAlert) listeningAlert.style.display = "none";
       
-      saleBody.innerHTML = "";
-      msg.data.items.forEach(item => {
-        saleBody.innerHTML += `<tr>
-          <td>${item.name || item.id}</td>
-          <td>${item.qty}</td>
-          <td>${item.price}</td>
-        </tr>`;
+      const feed = document.getElementById("networkFeed");
+      const items = msg.data.items;
+      
+      const card = document.createElement("div");
+      card.style.background = "var(--surface)";
+      card.style.border = "1px solid var(--border)";
+      card.style.padding = "10px";
+      card.style.borderRadius = "6px";
+      card.style.fontSize = "12px";
+
+      let itemsHtml = items.map(i => `<li style="margin-bottom:4px;">${i.qty}x <strong>${i.name}</strong> - ${i.price}</li>`).join("");
+      
+      card.innerHTML = `
+        <p style="font-weight:600; margin-bottom:8px; color:var(--primary);">Detected POS Event</p>
+        <ul style="padding-left:16px; margin-bottom:12px; color:var(--muted);">${itemsHtml}</ul>
+        <button class="btn btn-secondary btn-select-sale" style="width:100%; padding:6px; background:var(--surface2);">This is the final receipt!</button>
+      `;
+
+      card.querySelector(".btn-select-sale").addEventListener("click", () => {
+         // lock it in and go to step 3
+         step2.classList.remove("active");
+         step2.classList.add("completed");
+         step3.classList.add("active");
       });
 
-      saleTable.style.display = "table";
-      s2ConfirmBtns.style.display = "flex";
+      feed.prepend(card);
     }
   });
 
