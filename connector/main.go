@@ -34,13 +34,8 @@ func main() {
 
 	log.Printf("[PST] Connector v%s starting...", VERSION)
 
-	// Inject the Chrome/Edge extension via Windows Registry
-	log.Println("[PST] Injecting browser extension via registry...")
-	if err := InjectExtension(); err != nil {
-		log.Printf("[PST] Warning: could not inject extension: %v", err)
-	} else {
-		log.Println("[PST] Extension injection successful.")
-	}
+	// We are using the manual/click-to-install flow, so no registry injection is performed here.
+	log.Println("[PST] Desktop connector is running and ready for extension connection.")
 
 	// Start the local HTTP API
 	mux := http.NewServeMux()

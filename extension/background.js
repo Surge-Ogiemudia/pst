@@ -70,3 +70,72 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 });
+
+// ==========================================
+// Cloud Sync Logic (Local-First Reconciliation)
+// ==========================================
+const CLOUD_API = 'http://localhost:3000/api';
+const PHARMACY_ID = 'MANTLE-PHARMACY-TEST';
+
+async function syncInventoryToCloud() {
+  const data = await chrome.storage.local.get('unsyncedInventory');
+  if (!data.unsyncedInventory) return;
+
+  try {
+    const res = await fetch(`${CLOUD_API}/sync-inventory`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pharmacyId: PHARMACY_ID, rows: data.unsyncedInventory })
+    });
+    if (res.ok) {
+      console.log('✅ Inventory synced to cloud');
+      chrome.storage.local.remove('unsyncedInventory');
+    }
+  } catch (e) {
+    console.error('❌ Cloud sync failed, will retry later:', e);
+  }
+}
+
+async function syncSalesToCloud() {
+  const data = await chrome.storage.local.get('unsyncedSales');
+  if (!data.unsyncedSales || data.unsyncedSales.length === 0) return;
+
+  const remainingSales = [];
+  for (const sale of data.unsyncedSales) {
+    try {
+      const res = await fetch(`${CLOUD_API}/record-sale`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pharmacyId: PHARMACY_ID, items: sale.items, source: sale.source })
+      });
+      if (res.ok) {
+        console.log('✅ Sale synced to cloud');
+      } else {
+        remainingSales.push(sale);
+      }
+    } catch (e) {
+      console.error('❌ Cloud sync failed for sale, keeping in local backup:', e);
+      remainingSales.push(sale);
+    }
+  }
+  
+  if (remainingSales.length === 0) {
+    chrome.storage.local.remove('unsyncedSales');
+  } else {
+    chrome.storage.local.set({ unsyncedSales: remainingSales });
+  }
+}
+
+// Background sync loop checks every 10 seconds
+setInterval(() => {
+  syncInventoryToCloud();
+  syncSalesToCloud();
+}, 10000);
+
+// Listen for explicit trigger from sidepanel
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (msg.action === 'TRIGGER_SYNC') {
+    syncInventoryToCloud();
+    syncSalesToCloud();
+  }
+});
