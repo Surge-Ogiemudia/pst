@@ -24,21 +24,6 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.action === "STOP_SCANNING") {
     stopRequested = true;
   }
-
-  // CDP events come from background.js -> content.js -> sidepanel
-  if (msg.action === "CDP_SALE_DETECTED") {
-    const parsed = parseSaleData(msg.data.reqBody, msg.data.payload);
-    chrome.runtime.sendMessage({ 
-      action: "SALE_DETECTED", 
-      data: { 
-        url: msg.data.url,
-        method: msg.data.method,
-        reqBody: msg.data.reqBody,
-        payload: msg.data.payload,
-        parsed: parsed  // { items: [...], source: 'json'|'html'|'unknown' }
-      } 
-    });
-  }
 });
 
 // =============================================
@@ -345,42 +330,33 @@ window.addEventListener("message", (event) => {
     const method = event.data.method || 'GET';
     const url = (event.data.url || '').toLowerCase();
     
-    // We only care about POST or PUT requests for sales
     if (method !== 'POST' && method !== 'PUT') return;
-
-    let items = [];
-    
-    if (Array.isArray(payload) && payload.length > 0 && typeof payload[0] === 'object') {
-      items = payload;
-    } else if (payload && Array.isArray(payload.items)) {
-      items = payload.items;
-    } else if (Array.isArray(reqBody) && reqBody.length > 0 && typeof reqBody[0] === 'object') {
-      items = reqBody;
-    } else if (reqBody && Array.isArray(reqBody.items)) {
-      items = reqBody.items;
-    }
 
     const strPayload = JSON.stringify(payload || {}).toLowerCase();
     const strReq = JSON.stringify(reqBody || {}).toLowerCase();
     
-    // Heuristic: Does this request look like a sale/cart/checkout?
     const looksLikeSale = 
-      url.includes('sale') || url.includes('checkout') || url.includes('order') || url.includes('invoice') || url.includes('cart') || url.includes('pos') ||
-      (strPayload.includes('qty') || strPayload.includes('quantity')) ||
-      (strReq.includes('qty') || strReq.includes('quantity')) ||
-      (strReq.includes('price') || strReq.includes('amount') || strReq.includes('total'));
+      url.includes('sale') || url.includes('checkout') || url.includes('order') || 
+      url.includes('invoice') || url.includes('cart') || url.includes('pos') ||
+      url.includes('payment') || url.includes('bill') || url.includes('receipt') ||
+      strPayload.includes('receipt') || strPayload.includes('invoice') ||
+      strReq.includes('qty') || strReq.includes('quantity') ||
+      strReq.includes('price') || strReq.includes('amount');
 
-    if (!looksLikeSale && items.length === 0) {
-      return; // Ignore this POST request, it's probably analytics or a heartbeat
-    }
+    if (!looksLikeSale) return;
 
-    if (items.length > 0) {
-      items = items.map(i => ({ name: i.name || i.id || "Item", qty: i.qty || i.quantity || 1, price: i.price || i.amount || 0 }));
-    } else {
-      // We know it looks like a sale, but we couldn't parse the array. Mock it.
-      items = [{ name: "Mock Sale Item", qty: 1, price: (payload && (payload.total || payload.amount)) || (reqBody && (reqBody.total || reqBody.amount)) || "N/A" }];
-    }
-
-    chrome.runtime.sendMessage({ action: "SALE_DETECTED", data: { items } });
+    const parsed = parseSaleData(reqBody, payload);
+    
+    chrome.runtime.sendMessage({ 
+      action: "SALE_DETECTED", 
+      data: { 
+        url: event.data.url,
+        method: method,
+        reqBody: reqBody,
+        payload: payload,
+        parsed: parsed
+      } 
+    });
   }
 });
+
