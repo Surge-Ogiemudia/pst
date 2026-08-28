@@ -160,6 +160,9 @@ document.addEventListener("DOMContentLoaded", () => {
          step2.classList.add("completed");
          step3.classList.add("active");
          
+         // Mark setup as complete so background worker starts intercepting silently
+         chrome.storage.local.set({ setupComplete: true });
+         
          // Add sale to local backup queue and trigger sync
          chrome.storage.local.get({ unsyncedSales: [] }, (data) => {
            const newSale = {
@@ -171,6 +174,10 @@ document.addEventListener("DOMContentLoaded", () => {
              chrome.runtime.sendMessage({ action: 'TRIGGER_SYNC' });
            });
          });
+         
+         setTimeout(() => {
+           window.close(); // self close
+         }, 3000);
       });
 
       feed.prepend(card);
@@ -270,17 +277,16 @@ document.addEventListener("DOMContentLoaded", () => {
     inventoryTable.style.display = "table";
   }
 
-  // Step 2 -> Step 3
+  // Redundant confirm button fallback
   btnConfirmSale.addEventListener("click", () => {
     step2.classList.remove("active");
     step2.classList.add("completed");
     step3.classList.add("active");
     
-    // Save everything to storage
     chrome.storage.local.set({ setupComplete: true });
     
     setTimeout(() => {
-      window.close(); // self close
+      window.close();
     }, 3000);
   });
 });
