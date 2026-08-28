@@ -57,6 +57,9 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   btnStopScanning.addEventListener("click", () => {
+    if (!confirm("Are you sure you want to stop scanning? The data collected so far will be saved.")) {
+      return;
+    }
     btnStopScanning.innerText = "Stopping...";
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       chrome.tabs.sendMessage(tabs[0].id, { action: "STOP_SCANNING" });

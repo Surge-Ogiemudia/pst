@@ -61,7 +61,28 @@ async function startAutoScrape(paginationSelector) {
     }
 
     nextBtn.click();
-    await new Promise(r => setTimeout(r, 2000)); // Wait 2s for network/DOM update
+    
+    // Dynamically wait for the table to change (up to 10 seconds)
+    let waited = 0;
+    let tableChanged = false;
+    while (waited < 10000) {
+      await new Promise(r => setTimeout(r, 500));
+      waited += 500;
+      
+      const checkData = scrapeInventory();
+      if (checkData.rows.length > 0) {
+        const checkHash = checkData.rows[0].join("|");
+        if (checkHash !== currentRowHash) {
+          tableChanged = true;
+          break;
+        }
+      }
+    }
+
+    if (!tableChanged) {
+      break; // Page didn't change after 10 seconds, must be the end.
+    }
+
     currentPage++;
 
     if (currentPage > 50) break; // Hard limit safety
