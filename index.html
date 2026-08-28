@@ -31,11 +31,12 @@
     /* Left Panel: The Questions */
     .left-panel {
       width: 45%;
-      padding: 60px 40px;
+      padding: 40px;
       display: flex;
       flex-direction: column;
       border-right: 1px solid var(--border);
       background: radial-gradient(circle at top left, rgba(0, 212, 170, 0.05), transparent 50%);
+      overflow-y: auto;
     }
 
     .brand {
@@ -116,11 +117,12 @@
     /* Right Panel: The Instructions */
     .right-panel {
       width: 55%;
-      padding: 60px;
+      padding: 40px;
       display: flex;
       flex-direction: column;
       justify-content: center;
       position: relative;
+      overflow-y: auto;
     }
     .right-panel::before {
       content: '';
