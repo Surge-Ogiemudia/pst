@@ -149,7 +149,8 @@ async function startAutoScrape(paginationSelector) {
   let currentPage = 1;
   let lastRowHash = "";
 
-  while (!stopRequested) {
+  try {
+    while (!stopRequested) {
     const data = scrapeInventory();
     if (currentPage === 1) headers = data.headers;
     
@@ -170,7 +171,12 @@ async function startAutoScrape(paginationSelector) {
 
     if (!paginationSelector) break; // Single page scan
 
-    let nextBtn = document.querySelector(paginationSelector.selector);
+    let nextBtn = null;
+    try {
+      nextBtn = document.querySelector(paginationSelector.selector);
+    } catch(e) {
+      console.warn("PST: Invalid primary selector, falling back.", e);
+    }
     
     // Fallback: If strict selector fails, try to find it by exact class or text
     if (!nextBtn) {
@@ -212,11 +218,14 @@ async function startAutoScrape(paginationSelector) {
 
     currentPage++;
 
-    if (currentPage > 50) break; // Hard limit safety
+      if (currentPage > 50) break; // Hard limit safety
+    }
+  } catch (e) {
+    console.error("PST Auto Scrape Error:", e);
+  } finally {
+    isScraping = false;
+    chrome.runtime.sendMessage({ action: "INVENTORY_SCANNED", data: { headers: headers, rows: aggregatedRows } });
   }
-
-  isScraping = false;
-  chrome.runtime.sendMessage({ action: "INVENTORY_SCANNED", data: { headers: headers, rows: aggregatedRows } });
 }
 
 // 2. Training Logic
