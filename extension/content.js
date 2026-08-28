@@ -343,9 +343,10 @@ function scrapeInventory() {
   }
 
   return { headers: [], rows: [] };
-
+}
 
 // 4. Listen for network events from injected script
+
 window.addEventListener("message", (event) => {
   if (event.source !== window) return;
   
