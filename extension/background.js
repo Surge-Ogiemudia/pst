@@ -138,4 +138,20 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     syncInventoryToCloud();
     syncSalesToCloud();
   }
+  
+  if (msg.action === 'SALE_DETECTED') {
+    // If the sidepanel is closed, the background worker needs to catch sales in the background
+    chrome.storage.local.get(['setupComplete', 'unsyncedSales'], (data) => {
+      if (data.setupComplete && msg.data.parsed && msg.data.parsed.items.length > 0) {
+        const newSale = {
+          items: msg.data.parsed.items,
+          source: msg.data.parsed.source,
+          timestamp: Date.now()
+        };
+        chrome.storage.local.set({ unsyncedSales: [...(data.unsyncedSales || []), newSale] }, () => {
+          syncSalesToCloud(); // Immediately trigger sync for this new sale
+        });
+      }
+    });
+  }
 });
