@@ -207,21 +207,30 @@ document.addEventListener("DOMContentLoaded", () => {
     const mapQty = parseInt(document.getElementById("mapQty").value);
     const mapPrice = parseInt(document.getElementById("mapPrice").value);
 
+    // Overwrite rawRows with the newly mapped data so the backend receives it correctly
+    rawRows = rawRows.map(row => {
+      // Create a standard array format that the backend expects: [Name, Qty, Price]
+      return [
+        mapName >= 0 ? row[mapName] : '-',
+        mapQty >= 0 ? row[mapQty] : 0,
+        mapPrice >= 0 ? row[mapPrice] : 0
+      ];
+    });
+
     // Re-render table with mapped data
-    inventoryHead.innerHTML = "<tr><th>ID</th><th>Name</th><th>Qty</th><th>Price</th></tr>";
+    inventoryHead.innerHTML = "<tr><th>Name</th><th>Qty</th><th>Price</th></tr>";
     inventoryBody.innerHTML = "";
     
     rawRows.slice(0, 3).forEach(row => {
       inventoryBody.innerHTML += `<tr>
-        <td>${mapId >= 0 ? row[mapId] : '-'}</td>
-        <td>${mapName >= 0 ? row[mapName] : '-'}</td>
-        <td>${mapQty >= 0 ? row[mapQty] : '-'}</td>
-        <td>${mapPrice >= 0 ? row[mapPrice] : '-'}</td>
+        <td>${row[0]}</td>
+        <td>${row[1]}</td>
+        <td>${row[2]}</td>
       </tr>`;
     });
     
     if (rawRows.length > 3) {
-      inventoryBody.innerHTML += `<tr><td colspan="4" style="text-align:center; color:var(--muted)">... and ${rawRows.length - 3} more rows</td></tr>`;
+      inventoryBody.innerHTML += `<tr><td colspan="3" style="text-align:center; color:var(--muted)">... and ${rawRows.length - 3} more rows</td></tr>`;
     }
   });
 
