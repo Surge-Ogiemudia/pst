@@ -103,7 +103,6 @@ document.addEventListener("DOMContentLoaded", () => {
       if (listeningAlert) listeningAlert.style.display = "none";
       
       const feed = document.getElementById("networkFeed");
-      const items = msg.data.items;
       
       const card = document.createElement("div");
       card.style.background = "var(--surface)";
@@ -112,11 +111,22 @@ document.addEventListener("DOMContentLoaded", () => {
       card.style.borderRadius = "6px";
       card.style.fontSize = "12px";
 
-      let itemsHtml = items.map(i => `<li style="margin-bottom:4px;">${i.qty}x <strong>${i.name}</strong> - ${i.price}</li>`).join("");
+      // Combine reqBody and payload for the preview
+      const rawData = {
+        request: msg.data.reqBody || null,
+        response: msg.data.payload || null
+      };
+      
+      const rawJson = JSON.stringify(rawData, null, 2);
+      
+      let endpointName = msg.data.url.split('?')[0].split('/').pop();
+      if (!endpointName || endpointName.length < 2) endpointName = "Endpoint";
       
       card.innerHTML = `
-        <p style="font-weight:600; margin-bottom:8px; color:var(--primary);">Detected POS Event</p>
-        <ul style="padding-left:16px; margin-bottom:12px; color:var(--muted);">${itemsHtml}</ul>
+        <p style="font-weight:600; margin-bottom:8px; color:var(--primary); word-break: break-all;">
+          ${msg.data.method} /${endpointName}
+        </p>
+        <pre style="background:#000; color:#00ff00; padding:8px; border-radius:4px; max-height:100px; overflow:auto; margin-bottom:12px; font-family:monospace; font-size:11px;">${rawJson}</pre>
         <button class="btn btn-secondary btn-select-sale" style="width:100%; padding:6px; background:var(--surface2);">This is the final receipt!</button>
       `;
 
