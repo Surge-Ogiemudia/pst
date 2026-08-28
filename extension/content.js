@@ -75,7 +75,7 @@ function findItemsArray(rootObj) {
 
 const NAME_KEYS   = ['name','product','product_name','item','item_name','description','drug','medicine'];
 const QTY_KEYS    = ['qty','quantity','units','count','amount_qty','quantity_sold'];
-const PRICE_KEYS  = ['price','unit_price','rate','cost','selling_price','retail_price','subtotal','sub_total'];
+const PRICE_KEYS  = ['price','unit_price','rate','cost','selling_price','retail_price','subtotal','sub_total','amount','total'];
 
 function scoreLineItemArray(arr) {
   // Sample up to 3 items in the array to determine its quality
@@ -105,24 +105,31 @@ function scoreLineItemArray(arr) {
 function normalizeItem(obj) {
   const keys = Object.keys(obj);
   const findVal = (candidates, preferNumber = false) => {
-    // Pass 1: Exact matches
-    for (const c of candidates) {
-      const match = keys.find(k => k.toLowerCase() === c);
-      if (match !== undefined && obj[match] !== null && obj[match] !== undefined) return obj[match];
-    }
-    // Pass 2: Substring matches
-    for (const c of candidates) {
-      const match = keys.find(k => k.toLowerCase().includes(c));
-      if (match !== undefined && obj[match] !== null && obj[match] !== undefined) {
-        const val = obj[match];
-        // If we want a number but this is obviously a word (like "retail"), skip it
-        if (preferNumber && typeof val === 'string' && isNaN(parseFloat(val.replace(/[^0-9.-]+/g,"")))) {
-          continue;
+    let fallback = undefined;
+    
+    // Check exact matches first, then substring matches
+    for (const exact of [true, false]) {
+      for (const c of candidates) {
+        const match = keys.find(k => exact ? k.toLowerCase() === c : k.toLowerCase().includes(c));
+        if (match !== undefined && obj[match] !== null && obj[match] !== undefined) {
+          const val = obj[match];
+          
+          if (preferNumber) {
+            const strVal = String(val).replace(/[^0-9.-]+/g, "");
+            if (strVal === "") continue; // Reject pure strings like "retail"
+            
+            const numVal = parseFloat(strVal);
+            if (!isNaN(numVal)) {
+              if (numVal > 0) return val; // Found a non-zero number, perfect match!
+              if (fallback === undefined) fallback = val; // Save 0 as a fallback
+            }
+          } else {
+            if (String(val).trim() !== "") return val;
+          }
         }
-        return val;
       }
     }
-    return '-';
+    return fallback !== undefined ? fallback : '-';
   };
   return {
     name:  findVal(NAME_KEYS, false),
