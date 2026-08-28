@@ -18,7 +18,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
   if (msg.action === "SCAN_INVENTORY") {
     if (isScraping) return; // Prevent double scanning
-    startAutoScrape(msg.paginationSelector);
+    startAutoScrape(msg.paginationData);
   }
 
   if (msg.action === "STOP_SCANNING") {
@@ -36,16 +36,14 @@ async function startAutoScrape(paginationSelector) {
   let lastRowHash = "";
 
   while (!stopRequested) {
-    chrome.runtime.sendMessage({ action: "SCRAPE_PROGRESS", page: currentPage, totalItems: aggregatedRows.length });
-    
     const data = scrapeInventory();
     if (currentPage === 1) headers = data.headers;
     
     // Check if the current page actually returned new data
     if (data.rows.length === 0) break;
     
-    // Create a hash of the first row to detect infinite loops
-    const currentRowHash = data.rows[0].join("|");
+    // Create a hash of the first 5 rows to detect if the table actually changed
+    const currentRowHash = data.rows.slice(0, 5).map(r => r.join("|")).join("||");
     if (currentRowHash === lastRowHash && currentPage > 1) {
       break; // The page didn't actually change!
     }
@@ -53,9 +51,24 @@ async function startAutoScrape(paginationSelector) {
     
     aggregatedRows = aggregatedRows.concat(data.rows);
 
+    // Now that we have scraped this page, update the UI
+    chrome.runtime.sendMessage({ action: "SCRAPE_PROGRESS", page: currentPage, totalItems: aggregatedRows.length });
+
     if (!paginationSelector) break; // Single page scan
 
-    const nextBtn = document.querySelector(paginationSelector);
+    let nextBtn = document.querySelector(paginationSelector.selector);
+    
+    // Fallback: If strict selector fails, try to find it by exact class or text
+    if (!nextBtn) {
+      const allLinks = Array.from(document.querySelectorAll("a, button"));
+      if (paginationSelector.selectorClass) {
+        nextBtn = allLinks.find(el => el.className === paginationSelector.selectorClass);
+      }
+      if (!nextBtn && paginationSelector.selectorText) {
+        nextBtn = allLinks.find(el => el.innerText && el.innerText.trim() === paginationSelector.selectorText);
+      }
+    }
+
     if (!nextBtn || nextBtn.disabled || nextBtn.hasAttribute('disabled') || nextBtn.classList.contains('disabled')) {
       break;
     }
@@ -71,7 +84,7 @@ async function startAutoScrape(paginationSelector) {
       
       const checkData = scrapeInventory();
       if (checkData.rows.length > 0) {
-        const checkHash = checkData.rows[0].join("|");
+        const checkHash = checkData.rows.slice(0, 5).map(r => r.join("|")).join("||");
         if (checkHash !== currentRowHash) {
           tableChanged = true;
           break;
@@ -123,7 +136,15 @@ function captureClick(e) {
   if (currentHighlight) currentHighlight.style.outline = "";
 
   const selector = generateSelector(e.target);
-  chrome.runtime.sendMessage({ action: "TRAINING_COMPLETE", selector: selector });
+  const selectorText = e.target.innerText ? e.target.innerText.trim() : "";
+  const selectorClass = e.target.className && typeof e.target.className === 'string' ? e.target.className : "";
+  
+  chrome.runtime.sendMessage({ 
+    action: "TRAINING_COMPLETE", 
+    selector: selector,
+    selectorText: selectorText,
+    selectorClass: selectorClass
+  });
 }
 
 // Very basic unique selector generator
