@@ -61,9 +61,23 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
     btnStopScanning.innerText = "Stopping...";
+    
+    // Send STOP request to content script
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       chrome.tabs.sendMessage(tabs[0].id, { action: "STOP_SCANNING" });
     });
+
+    // Fallback: If the content script was destroyed (e.g. by a full page reload),
+    // it will never reply with INVENTORY_SCANNED. We forcefully reset the UI after 2s.
+    setTimeout(() => {
+      if (btnStopScanning.style.display !== "none") {
+        console.warn("PST: Content script did not respond to STOP. Force resetting UI.");
+        btnScanInventory.innerText = "Scan Current Page";
+        btnScanInventory.style.display = "inline-flex";
+        btnStopScanning.style.display = "none";
+        s1Btns.style.display = "block"; // Restore the train pagination button
+      }
+    }, 2000);
   });
 
   // Handle messages from content script/network watcher
