@@ -57,11 +57,24 @@ function captureClick(e) {
 // Very basic unique selector generator
 function generateSelector(el) {
   if (el.id) return `#${el.id}`;
-  if (el.className && typeof el.className === "string") {
-    const classes = el.className.split(" ").filter(c => c).join(".");
-    if (classes) return `${el.tagName.toLowerCase()}.${classes}`;
+  let path = [];
+  while (el && el.nodeType === Node.ELEMENT_NODE) {
+    let selector = el.nodeName.toLowerCase();
+    if (el.id) {
+      selector += `#${el.id}`;
+      path.unshift(selector);
+      break;
+    } else {
+      let sib = el, nth = 1;
+      while (sib = sib.previousElementSibling) {
+        if (sib.nodeName.toLowerCase() === selector) nth++;
+      }
+      if (nth != 1) selector += `:nth-of-type(${nth})`;
+    }
+    path.unshift(selector);
+    el = el.parentNode;
   }
-  return el.tagName.toLowerCase();
+  return path.join(" > ");
 }
 
 // 3. Scraping Logic
@@ -70,7 +83,6 @@ function scrapeInventory() {
   let targetTable = null;
   let maxRows = 0;
 
-  // Find the largest table
   tables.forEach(t => {
     const rows = t.querySelectorAll("tr");
     if (rows.length > maxRows) {
@@ -79,17 +91,26 @@ function scrapeInventory() {
     }
   });
 
-  if (!targetTable) return [["No table found", "", "", ""]];
+  if (!targetTable) return { headers: [], rows: [] };
+
+  let headers = [];
+  const headerRow = targetTable.querySelector("thead tr") || targetTable.querySelector("tr");
+  if (headerRow) {
+    headers = Array.from(headerRow.querySelectorAll("th, td")).map(c => c.innerText.trim().replace(/\n/g, ' '));
+  }
 
   const results = [];
-  const rows = targetTable.querySelectorAll("tr");
+  const rows = targetTable.querySelectorAll("tbody tr, tr");
   
   rows.forEach(row => {
-    const cells = Array.from(row.querySelectorAll("td, th")).map(c => c.innerText.trim());
+    // Skip the header row if we are looping all trs
+    if (row === headerRow) return;
+    
+    const cells = Array.from(row.querySelectorAll("td")).map(c => c.innerText.trim().replace(/\n/g, ' | ').replace(/\s+/g, ' '));
     if (cells.length > 0) results.push(cells);
   });
 
-  return results;
+  return { headers: headers, rows: results };
 }
 
 // 4. Listen for network events from injected script

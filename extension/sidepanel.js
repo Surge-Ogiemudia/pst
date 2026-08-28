@@ -12,8 +12,17 @@ document.addEventListener("DOMContentLoaded", () => {
   const s1Btns = document.getElementById("s1-btns");
   const s1ConfirmBtns = document.getElementById("s1-confirm-btns");
   
+  const inventoryHead = document.getElementById("inventoryHead");
   const inventoryTable = document.getElementById("inventoryTable");
   const inventoryBody = document.getElementById("inventoryBody");
+
+  const btnMapColumns = document.getElementById("btnMapColumns");
+  const mappingUI = document.getElementById("mappingUI");
+  const btnApplyMapping = document.getElementById("btnApplyMapping");
+  const mapSelects = document.querySelectorAll(".map-select");
+  
+  let rawHeaders = [];
+  let rawRows = [];
 
   const saleTable = document.getElementById("saleTable");
   const saleBody = document.getElementById("saleBody");
@@ -56,21 +65,11 @@ document.addEventListener("DOMContentLoaded", () => {
       s1Btns.style.display = "none";
       trainingAlert.style.display = "none";
       
-      // Populate Table Preview
-      inventoryBody.innerHTML = "";
-      msg.data.slice(0, 3).forEach(row => {
-        inventoryBody.innerHTML += `<tr>
-          <td>${row[0] || '-'}</td>
-          <td>${row[1] || '-'}</td>
-          <td>${row[2] || '-'}</td>
-          <td>${row[3] || '-'}</td>
-        </tr>`;
-      });
-      if (msg.data.length > 3) {
-        inventoryBody.innerHTML += `<tr><td colspan="4" style="text-align:center; color:var(--muted)">... and ${msg.data.length - 3} more rows</td></tr>`;
-      }
+      rawHeaders = msg.data.headers || [];
+      rawRows = msg.data.rows || [];
+
+      renderInventoryPreview();
       
-      inventoryTable.style.display = "table";
       s1ConfirmBtns.style.display = "flex";
     }
 
@@ -98,7 +97,6 @@ document.addEventListener("DOMContentLoaded", () => {
     step1.classList.add("completed");
     step2.classList.add("active");
     
-    // Inject the network watcher into the page
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       chrome.scripting.executeScript({
         target: { tabId: tabs[0].id },
@@ -107,6 +105,73 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     });
   });
+
+  // Column Mapping Logic
+  btnMapColumns.addEventListener("click", () => {
+    mappingUI.style.display = "block";
+    btnMapColumns.style.display = "none";
+
+    let optionsHTML = '<option value="-1">-- Ignore --</option>';
+    rawHeaders.forEach((h, i) => {
+      optionsHTML += `<option value="${i}">Col ${i + 1}: ${h || 'Unknown'}</option>`;
+    });
+    
+    // If headers are missing, create generic ones
+    if (rawHeaders.length === 0 && rawRows.length > 0) {
+      optionsHTML = '<option value="-1">-- Ignore --</option>';
+      rawRows[0].forEach((_, i) => {
+        optionsHTML += `<option value="${i}">Column ${i + 1}</option>`;
+      });
+    }
+
+    mapSelects.forEach(select => {
+      select.innerHTML = optionsHTML;
+    });
+  });
+
+  btnApplyMapping.addEventListener("click", () => {
+    mappingUI.style.display = "none";
+    btnMapColumns.style.display = "inline-flex";
+    
+    const mapId = parseInt(document.getElementById("mapId").value);
+    const mapName = parseInt(document.getElementById("mapName").value);
+    const mapQty = parseInt(document.getElementById("mapQty").value);
+    const mapPrice = parseInt(document.getElementById("mapPrice").value);
+
+    // Re-render table with mapped data
+    inventoryHead.innerHTML = "<tr><th>ID</th><th>Name</th><th>Qty</th><th>Price</th></tr>";
+    inventoryBody.innerHTML = "";
+    
+    rawRows.slice(0, 3).forEach(row => {
+      inventoryBody.innerHTML += `<tr>
+        <td>${mapId >= 0 ? row[mapId] : '-'}</td>
+        <td>${mapName >= 0 ? row[mapName] : '-'}</td>
+        <td>${mapQty >= 0 ? row[mapQty] : '-'}</td>
+        <td>${mapPrice >= 0 ? row[mapPrice] : '-'}</td>
+      </tr>`;
+    });
+    
+    if (rawRows.length > 3) {
+      inventoryBody.innerHTML += `<tr><td colspan="4" style="text-align:center; color:var(--muted)">... and ${rawRows.length - 3} more rows</td></tr>`;
+    }
+  });
+
+  function renderInventoryPreview() {
+    inventoryHead.innerHTML = "<tr><th>ID</th><th>Name</th><th>Qty</th><th>Price</th></tr>";
+    if (rawHeaders && rawHeaders.length > 0) {
+      inventoryHead.innerHTML = "<tr>" + rawHeaders.slice(0,4).map(h => `<th>${h}</th>`).join("") + "</tr>";
+    }
+
+    inventoryBody.innerHTML = "";
+    rawRows.slice(0, 3).forEach(row => {
+      inventoryBody.innerHTML += "<tr>" + row.slice(0,4).map(c => `<td>${c || '-'}</td>`).join("") + "</tr>";
+    });
+    
+    if (rawRows.length > 3) {
+      inventoryBody.innerHTML += `<tr><td colspan="4" style="text-align:center; color:var(--muted)">... and ${rawRows.length - 3} more rows</td></tr>`;
+    }
+    inventoryTable.style.display = "table";
+  }
 
   // Step 2 -> Step 3
   btnConfirmSale.addEventListener("click", () => {
