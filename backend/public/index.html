@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>PST Dashboard</title>
+  <style>
+    :root {
+      --bg: #09090b;
+      --surface: #18181b;
+      --border: #27272a;
+      --text: #fafafa;
+      --muted: #a1a1aa;
+      --accent: #00d4aa;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 40px;
+    }
+    h1, h2 { font-weight: 500; }
+    h1 { color: var(--accent); margin-bottom: 30px; }
+    .container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin-top: 15px;
+    }
+    th, td {
+      padding: 10px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    th {
+      color: var(--muted);
+      font-weight: 500;
+    }
+    tr:last-child td { border-bottom: none; }
+    .empty { color: var(--muted); font-style: italic; font-size: 13px; }
+    .badge {
+      background: rgba(0, 212, 170, 0.1);
+      color: var(--accent);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 11px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Pharmacy Stack (PST) - Sync Dashboard</h1>
+  
+  <div class="container">
+    <!-- Sales Feed -->
+    <div class="card">
+      <h2>Recent Live Sales</h2>
+      <div id="salesList"><div class="empty">Loading sales...</div></div>
+    </div>
+
+    <!-- Inventory Snapshot -->
+    <div class="card">
+      <h2>Latest Inventory Synced</h2>
+      <div id="inventoryList"><div class="empty">Loading inventory...</div></div>
+    </div>
+  </div>
+
+  <script>
+    async function loadData() {
+      try {
+        const res = await fetch('/api/dashboard-data');
+        const data = await res.json();
+        
+        // Render Sales
+        const salesHtml = data.sales.length === 0 ? '<div class="empty">No sales intercepted yet.</div>' : 
+          data.sales.map(s => `
+            <div style="margin-bottom:20px; border:1px solid var(--border); border-radius:6px; padding:12px;">
+              <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                <span class="badge">${s.pharmacyId}</span>
+                <span style="color:var(--muted); font-size:12px;">${new Date(s.timestamp).toLocaleTimeString()}</span>
+              </div>
+              <table style="margin-top:0;">
+                ${s.items.map(i => `<tr><td>${i.name}</td><td>x${i.qty}</td><td style="text-align:right">₦${i.price}</td></tr>`).join('')}
+                <tr><td colspan="2" style="font-weight:bold; color:var(--accent);">TOTAL</td><td style="text-align:right; font-weight:bold; color:var(--accent);">₦${s.totalAmount}</td></tr>
+              </table>
+            </div>
+          `).join('');
+        document.getElementById('salesList').innerHTML = salesHtml;
+
+        // Render Inventory
+        const invHtml = data.inventory.length === 0 ? '<div class="empty">No inventory synced yet.</div>' : 
+          data.inventory.map(inv => `
+            <div style="margin-bottom:20px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <strong>${inv.pharmacyId}</strong>
+                <span style="color:var(--muted); font-size:12px;">Synced: ${new Date(inv.lastSynced).toLocaleString()}</span>
+              </div>
+              <div style="max-height: 400px; overflow-y: auto; border:1px solid var(--border); border-radius:6px;">
+                <table style="margin-top:0;">
+                  <tr><th>S/N</th><th>Item Name</th><th>Qty</th><th>Price</th></tr>
+                  ${inv.items.map(i => `<tr><td>${i.sn || '-'}</td><td>${i.name}</td><td>${i.qty}</td><td>₦${i.price}</td></tr>`).join('')}
+                </table>
+              </div>
+            </div>
+          `).join('');
+        document.getElementById('inventoryList').innerHTML = invHtml;
+
+      } catch (err) {
+        console.error("Error loading dashboard", err);
+      }
+    }
+
+    loadData();
+    setInterval(loadData, 5000); // Auto refresh every 5s
+  </script>
+</body>
+</html>
