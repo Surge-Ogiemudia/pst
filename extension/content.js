@@ -192,7 +192,7 @@ async function startAutoScrape(paginationSelector) {
     // Dynamically wait for the table to change (up to 10 seconds)
     let waited = 0;
     let tableChanged = false;
-    while (waited < 10000) {
+    while (waited < 10000 && !stopRequested) {
       await new Promise(r => setTimeout(r, 500));
       waited += 500;
       
@@ -286,6 +286,7 @@ function generateSelector(el) {
 
 // 3. Scraping Logic
 function scrapeInventory() {
+  // Strategy A: HTML <table> based layout
   const tables = document.querySelectorAll("table");
   let targetTable = null;
   let maxRows = 0;
@@ -298,27 +299,51 @@ function scrapeInventory() {
     }
   });
 
-  if (!targetTable) return { headers: [], rows: [] };
-
-  let headers = [];
-  const headerRow = targetTable.querySelector("thead tr") || targetTable.querySelector("tr");
-  if (headerRow) {
-    headers = Array.from(headerRow.querySelectorAll("th, td")).map(c => c.innerText.trim().replace(/\n/g, ' '));
+  if (targetTable && maxRows > 1) {
+    let headers = [];
+    const headerRow = targetTable.querySelector("thead tr") || targetTable.querySelector("tr");
+    if (headerRow) {
+      headers = Array.from(headerRow.querySelectorAll("th, td")).map(c => c.innerText.trim().replace(/\n/g, ' '));
+    }
+    const results = [];
+    const rows = targetTable.querySelectorAll("tbody tr, tr");
+    rows.forEach(row => {
+      if (row === headerRow) return;
+      const cells = Array.from(row.querySelectorAll("td")).map(c => c.innerText.trim().replace(/\n/g, ' | ').replace(/\s+/g, ' '));
+      if (cells.length > 0) results.push(cells);
+    });
+    if (results.length > 0) return { headers, rows: results };
   }
 
-  const results = [];
-  const rows = targetTable.querySelectorAll("tbody tr, tr");
+  // Strategy B: Card/grid layout (no table found — look for repeated product card pattern)
+  // Find groups of sibling elements that repeat with similar structure
+  const candidates = Array.from(document.querySelectorAll('[class*="product"], [class*="item"], [class*="card"], [class*="catalog"], [class*="grid"]'));
   
-  rows.forEach(row => {
-    // Skip the header row if we are looping all trs
-    if (row === headerRow) return;
-    
-    const cells = Array.from(row.querySelectorAll("td")).map(c => c.innerText.trim().replace(/\n/g, ' | ').replace(/\s+/g, ' '));
-    if (cells.length > 0) results.push(cells);
+  // Pick the container with the most direct children that look like cards
+  let bestContainer = null;
+  let bestCount = 0;
+  candidates.forEach(el => {
+    const children = Array.from(el.children);
+    if (children.length > bestCount && children.length > 2) {
+      bestCount = children.length;
+      bestContainer = el;
+    }
   });
 
-  return { headers: headers, rows: results };
-}
+  if (bestContainer && bestCount > 2) {
+    const results = [];
+    Array.from(bestContainer.children).forEach(card => {
+      const text = card.innerText || card.textContent || '';
+      const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+      if (lines.length >= 1) results.push(lines);
+    });
+    if (results.length > 0) {
+      return { headers: ['Product Info'], rows: results };
+    }
+  }
+
+  return { headers: [], rows: [] };
+
 
 // 4. Listen for network events from injected script
 window.addEventListener("message", (event) => {
