@@ -84,6 +84,11 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     if (msg.action === "INVENTORY_SCANNED") {
+      // If we already received data from another frame, and this frame is empty, ignore it
+      if (rawRows && rawRows.length > 0 && (!msg.data.rows || msg.data.rows.length === 0)) {
+        return;
+      }
+      
       btnScanInventory.innerText = "Scan Current Page";
       btnScanInventory.style.display = "inline-flex";
       btnStopScanning.style.display = "none";
