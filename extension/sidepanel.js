@@ -223,8 +223,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Overwrite rawRows with the newly mapped data so the backend receives it correctly
     rawRows = rawRows.map(row => {
-      // Create a standard array format that the backend expects: [Name, Qty, Price]
+      // Create a standard array format that the backend expects: [ID, Name, Qty, Price]
       return [
+        mapId >= 0 ? row[mapId] : '-',
         mapName >= 0 ? row[mapName] : '-',
         mapQty >= 0 ? row[mapQty] : 0,
         mapPrice >= 0 ? row[mapPrice] : 0
@@ -232,7 +233,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     // Re-render table with mapped data
-    inventoryHead.innerHTML = "<tr><th>Name</th><th>Qty</th><th>Price</th></tr>";
+    inventoryHead.innerHTML = "<tr><th>S/N</th><th>Name</th><th>Qty</th><th>Price</th></tr>";
     inventoryBody.innerHTML = "";
     
     rawRows.slice(0, 3).forEach(row => {
@@ -240,16 +241,17 @@ document.addEventListener("DOMContentLoaded", () => {
         <td>${row[0]}</td>
         <td>${row[1]}</td>
         <td>${row[2]}</td>
+        <td>${row[3]}</td>
       </tr>`;
     });
     
     if (rawRows.length > 3) {
-      inventoryBody.innerHTML += `<tr><td colspan="3" style="text-align:center; color:var(--muted)">... and ${rawRows.length - 3} more rows</td></tr>`;
+      inventoryBody.innerHTML += `<tr><td colspan="4" style="text-align:center; color:var(--muted)">... and ${rawRows.length - 3} more rows</td></tr>`;
     }
   });
 
   function renderInventoryPreview() {
-    inventoryHead.innerHTML = "<tr><th>ID</th><th>Name</th><th>Qty</th><th>Price</th></tr>";
+    inventoryHead.innerHTML = "<tr><th>S/N</th><th>Name</th><th>Qty</th><th>Price</th></tr>";
     if (rawHeaders && rawHeaders.length > 0) {
       inventoryHead.innerHTML = "<tr>" + rawHeaders.slice(0,4).map(h => `<th>${h}</th>`).join("") + "</tr>";
     }
