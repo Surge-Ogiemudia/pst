@@ -28,6 +28,12 @@
       display: flex;
     }
 
+    /* Custom dark scrollbars */
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); }
+
     /* Left Panel: The Questions */
     .left-panel {
       width: 45%;
@@ -37,6 +43,7 @@
       border-right: 1px solid var(--border);
       background: radial-gradient(circle at top left, rgba(0, 212, 170, 0.05), transparent 50%);
       overflow-y: auto;
+      overflow-x: hidden;
     }
 
     .brand {
@@ -123,6 +130,7 @@
       justify-content: center;
       position: relative;
       overflow-y: auto;
+      overflow-x: hidden;
     }
     .right-panel::before {
       content: '';
