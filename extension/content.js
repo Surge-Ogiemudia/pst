@@ -15,10 +15,42 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
 
   if (msg.action === "SCAN_INVENTORY") {
-    const data = scrapeInventory();
-    chrome.runtime.sendMessage({ action: "INVENTORY_SCANNED", data: data });
+    startAutoScrape(msg.paginationSelector);
   }
 });
+
+async function startAutoScrape(paginationSelector) {
+  let aggregatedRows = [];
+  let headers = [];
+  let currentPage = 1;
+
+  while (true) {
+    chrome.runtime.sendMessage({ action: "SCRAPE_PROGRESS", page: currentPage, totalItems: aggregatedRows.length });
+    
+    const data = scrapeInventory();
+    if (currentPage === 1) headers = data.headers;
+    
+    // Check if the current page actually returned new data to prevent infinite loops on static pages
+    if (data.rows.length === 0) break;
+    
+    aggregatedRows = aggregatedRows.concat(data.rows);
+
+    if (!paginationSelector) break; // Single page scan
+
+    const nextBtn = document.querySelector(paginationSelector);
+    if (!nextBtn || nextBtn.disabled || nextBtn.hasAttribute('disabled') || nextBtn.classList.contains('disabled')) {
+      break;
+    }
+
+    nextBtn.click();
+    await new Promise(r => setTimeout(r, 2000)); // Wait 2s for network/DOM update
+    currentPage++;
+
+    if (currentPage > 50) break; // Hard limit safety
+  }
+
+  chrome.runtime.sendMessage({ action: "INVENTORY_SCANNED", data: { headers: headers, rows: aggregatedRows } });
+}
 
 // 2. Training Logic
 let currentHighlight = null;

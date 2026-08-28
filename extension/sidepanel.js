@@ -23,6 +23,7 @@ document.addEventListener("DOMContentLoaded", () => {
   
   let rawHeaders = [];
   let rawRows = [];
+  let savedPaginationSelector = null;
 
   const saleTable = document.getElementById("saleTable");
   const saleBody = document.getElementById("saleBody");
@@ -46,9 +47,9 @@ document.addEventListener("DOMContentLoaded", () => {
   btnScanInventory.addEventListener("click", () => {
     btnScanInventory.innerText = "Scanning...";
     
-    // Tell content script to scrape the largest table
+    // Tell content script to scrape the largest table and loop pagination
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      chrome.tabs.sendMessage(tabs[0].id, { action: "SCAN_INVENTORY" });
+      chrome.tabs.sendMessage(tabs[0].id, { action: "SCAN_INVENTORY", paginationSelector: savedPaginationSelector });
     });
   });
 
@@ -58,6 +59,11 @@ document.addEventListener("DOMContentLoaded", () => {
       trainingAlert.className = "alert alert-success";
       trainingAlert.innerText = `Saved! Selector: ${msg.selector}`;
       btnTrainPage.innerText = "Pagination Trained";
+      savedPaginationSelector = msg.selector;
+    }
+
+    if (msg.action === "SCRAPE_PROGRESS") {
+      btnScanInventory.innerText = `Scraping Page ${msg.page}... (${msg.totalItems} items so far)`;
     }
 
     if (msg.action === "INVENTORY_SCANNED") {
