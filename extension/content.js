@@ -1,6 +1,8 @@
 // PST Content Script
 
 let isTraining = false;
+let isScraping = false;
+let stopRequested = false;
 
 // 1. Listen for messages from side panel
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
@@ -15,23 +17,39 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
 
   if (msg.action === "SCAN_INVENTORY") {
+    if (isScraping) return; // Prevent double scanning
     startAutoScrape(msg.paginationSelector);
+  }
+
+  if (msg.action === "STOP_SCANNING") {
+    stopRequested = true;
   }
 });
 
 async function startAutoScrape(paginationSelector) {
+  isScraping = true;
+  stopRequested = false;
+  
   let aggregatedRows = [];
   let headers = [];
   let currentPage = 1;
+  let lastRowHash = "";
 
-  while (true) {
+  while (!stopRequested) {
     chrome.runtime.sendMessage({ action: "SCRAPE_PROGRESS", page: currentPage, totalItems: aggregatedRows.length });
     
     const data = scrapeInventory();
     if (currentPage === 1) headers = data.headers;
     
-    // Check if the current page actually returned new data to prevent infinite loops on static pages
+    // Check if the current page actually returned new data
     if (data.rows.length === 0) break;
+    
+    // Create a hash of the first row to detect infinite loops
+    const currentRowHash = data.rows[0].join("|");
+    if (currentRowHash === lastRowHash && currentPage > 1) {
+      break; // The page didn't actually change!
+    }
+    lastRowHash = currentRowHash;
     
     aggregatedRows = aggregatedRows.concat(data.rows);
 
@@ -49,6 +67,7 @@ async function startAutoScrape(paginationSelector) {
     if (currentPage > 50) break; // Hard limit safety
   }
 
+  isScraping = false;
   chrome.runtime.sendMessage({ action: "INVENTORY_SCANNED", data: { headers: headers, rows: aggregatedRows } });
 }
 

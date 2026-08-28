@@ -5,6 +5,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const btnTrainPage = document.getElementById("btnTrainPage");
   const btnScanInventory = document.getElementById("btnScanInventory");
+  const btnStopScanning = document.getElementById("btnStopScanning");
   const btnConfirmInventory = document.getElementById("btnConfirmInventory");
   const btnConfirmSale = document.getElementById("btnConfirmSale");
 
@@ -46,10 +47,19 @@ document.addEventListener("DOMContentLoaded", () => {
   // Step 1: Scan Inventory
   btnScanInventory.addEventListener("click", () => {
     btnScanInventory.innerText = "Scanning...";
+    btnScanInventory.style.display = "none";
+    btnStopScanning.style.display = "inline-flex";
     
     // Tell content script to scrape the largest table and loop pagination
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       chrome.tabs.sendMessage(tabs[0].id, { action: "SCAN_INVENTORY", paginationSelector: savedPaginationSelector });
+    });
+  });
+
+  btnStopScanning.addEventListener("click", () => {
+    btnStopScanning.innerText = "Stopping...";
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      chrome.tabs.sendMessage(tabs[0].id, { action: "STOP_SCANNING" });
     });
   });
 
@@ -63,11 +73,13 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     if (msg.action === "SCRAPE_PROGRESS") {
-      btnScanInventory.innerText = `Scraping Page ${msg.page}... (${msg.totalItems} items so far)`;
+      btnStopScanning.innerText = `Stop (Page ${msg.page} | ${msg.totalItems} items)`;
     }
 
     if (msg.action === "INVENTORY_SCANNED") {
       btnScanInventory.innerText = "Scan Current Page";
+      btnScanInventory.style.display = "inline-flex";
+      btnStopScanning.style.display = "none";
       s1Btns.style.display = "none";
       trainingAlert.style.display = "none";
       
