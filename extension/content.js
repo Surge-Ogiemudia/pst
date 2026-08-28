@@ -212,22 +212,29 @@ window.addEventListener("message", (event) => {
   
   if (event.data.type && event.data.type === "PST_NETWORK_INTERCEPT") {
     const payload = event.data.payload;
-    // VERY simple heuristic: if it contains words like 'sale', 'checkout', 'price', or 'total'
-    const payloadStr = JSON.stringify(payload).toLowerCase();
+    const reqBody = event.data.reqBody || {};
+    const method = event.data.method || 'GET';
     
-    // In a real app we'd parse the actual API structure.
-    // For this mock sale, if we detect an array or object, we parse it into our table format.
-    // Let's assume we capture an array of items or single item.
     let items = [];
     
     // Attempt to extract items (mock extraction)
     if (Array.isArray(payload)) {
-      items = payload.map(i => ({ name: i.name || i.id || "Item", qty: i.qty || i.quantity || 1, price: i.price || i.amount || 0 }));
-    } else if (payload.items) {
-      items = payload.items.map(i => ({ name: i.name || i.id || "Item", qty: i.qty || i.quantity || 1, price: i.price || i.amount || 0 }));
+      items = payload;
+    } else if (payload && payload.items) {
+      items = payload.items;
+    } else if (Array.isArray(reqBody)) {
+      items = reqBody;
+    } else if (reqBody && reqBody.items) {
+      items = reqBody.items;
+    }
+
+    if (items.length > 0) {
+      items = items.map(i => ({ name: i.name || i.id || "Item", qty: i.qty || i.quantity || 1, price: i.price || i.amount || 0 }));
+    } else if (method === 'POST') {
+      // Just mock it if we can't parse it for the demo but we know it was a POST
+      items = [{ name: "Mock Sale Item", qty: 1, price: (payload && (payload.total || payload.amount)) || (reqBody && (reqBody.total || reqBody.amount)) || "N/A" }];
     } else {
-      // Just mock it if we can't parse it for the demo
-      items = [{ name: "Mock Sale Item", qty: 1, price: payload.total || payload.amount || "N/A" }];
+      return; // Ignore random GET requests that don't have items
     }
 
     chrome.runtime.sendMessage({ action: "SALE_DETECTED", data: { items } });

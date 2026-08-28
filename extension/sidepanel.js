@@ -121,14 +121,6 @@ document.addEventListener("DOMContentLoaded", () => {
     step1.classList.remove("active");
     step1.classList.add("completed");
     step2.classList.add("active");
-    
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      chrome.scripting.executeScript({
-        target: { tabId: tabs[0].id },
-        files: ["network.js"],
-        world: "MAIN"
-      });
-    });
   });
 
   // Column Mapping Logic
