@@ -45,33 +45,61 @@ function parseSaleData(reqBody, payload) {
   return { items: [], source: 'unknown' };
 }
 
-// Recursively search an object for an array that looks like line items
-function findItemsArray(obj, depth = 0) {
-  if (!obj || typeof obj !== 'object' || depth > 6) return null;
+// Recursively search an object for all arrays that look like line items and return the best one
+function findItemsArray(rootObj) {
+  const candidates = [];
   
-  if (Array.isArray(obj)) {
-    if (obj.length > 0 && typeof obj[0] === 'object' && looksLikeLineItem(obj[0])) {
-      return obj.map(normalizeItem);
-    }
-  } else {
-    for (const key of Object.keys(obj)) {
-      const result = findItemsArray(obj[key], depth + 1);
-      if (result) return result;
+  function search(obj, depth = 0) {
+    if (!obj || typeof obj !== 'object' || depth > 15) return;
+    
+    if (Array.isArray(obj)) {
+      if (obj.length > 0 && typeof obj[0] === 'object') {
+        const score = scoreLineItemArray(obj);
+        if (score > 0) candidates.push({ array: obj, score });
+      }
+    } else {
+      for (const key of Object.keys(obj)) {
+        search(obj[key], depth + 1);
+      }
     }
   }
-  return null;
+  
+  search(rootObj);
+  
+  if (candidates.length === 0) return null;
+  
+  // Sort by score descending and return the best match
+  candidates.sort((a, b) => b.score - a.score);
+  return candidates[0].array.map(normalizeItem);
 }
 
 const NAME_KEYS   = ['name','product','product_name','item','item_name','description','drug','medicine'];
 const QTY_KEYS    = ['qty','quantity','units','count','amount_qty','quantity_sold'];
 const PRICE_KEYS  = ['price','unit_price','rate','cost','selling_price','retail_price','subtotal','sub_total'];
 
-function looksLikeLineItem(obj) {
-  const keys = Object.keys(obj).map(k => k.toLowerCase());
-  const hasName  = NAME_KEYS.some(k  => keys.some(key => key.includes(k)));
-  const hasQty   = QTY_KEYS.some(k   => keys.some(key => key.includes(k)));
-  const hasPrice = PRICE_KEYS.some(k => keys.some(key => key.includes(k)));
-  return (hasName && hasQty) || (hasName && hasPrice) || (hasQty && hasPrice) || (hasName && keys.length < 10);
+function scoreLineItemArray(arr) {
+  // Sample up to 3 items in the array to determine its quality
+  const sample = arr.slice(0, 3);
+  let totalScore = 0;
+  
+  for (const obj of sample) {
+    if (!obj || typeof obj !== 'object') continue;
+    const keys = Object.keys(obj).map(k => k.toLowerCase());
+    const hasName  = NAME_KEYS.some(k  => keys.some(key => key.includes(k)));
+    const hasQty   = QTY_KEYS.some(k   => keys.some(key => key.includes(k)));
+    const hasPrice = PRICE_KEYS.some(k => keys.some(key => key.includes(k)));
+    
+    let score = 0;
+    if (hasName) score += 2;
+    if (hasQty) score += 1;
+    if (hasPrice) score += 1;
+    
+    // Penalty if name is just an ID (if we can detect it)
+    if (hasName && !hasPrice && !hasQty) score -= 1;
+    
+    if (score >= 2) totalScore += score;
+  }
+  return totalScore;
 }
 
 function normalizeItem(obj) {
