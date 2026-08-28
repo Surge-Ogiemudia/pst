@@ -68,17 +68,17 @@ const PRICE_KEYS  = ['price','unit_price','rate','cost','selling_price','retail_
 
 function looksLikeLineItem(obj) {
   const keys = Object.keys(obj).map(k => k.toLowerCase());
-  const hasName  = NAME_KEYS.some(k  => keys.includes(k));
-  const hasQty   = QTY_KEYS.some(k   => keys.includes(k));
-  const hasPrice = PRICE_KEYS.some(k => keys.includes(k));
-  return (hasName && hasQty) || (hasName && hasPrice) || (hasQty && hasPrice);
+  const hasName  = NAME_KEYS.some(k  => keys.some(key => key.includes(k)));
+  const hasQty   = QTY_KEYS.some(k   => keys.some(key => key.includes(k)));
+  const hasPrice = PRICE_KEYS.some(k => keys.some(key => key.includes(k)));
+  return (hasName && hasQty) || (hasName && hasPrice) || (hasQty && hasPrice) || (hasName && keys.length < 10);
 }
 
 function normalizeItem(obj) {
   const keys = Object.keys(obj);
   const findVal = (candidates) => {
     for (const c of candidates) {
-      const match = keys.find(k => k.toLowerCase() === c);
+      const match = keys.find(k => k.toLowerCase().includes(c));
       if (match !== undefined && obj[match] !== null && obj[match] !== undefined) return obj[match];
     }
     return '-';
