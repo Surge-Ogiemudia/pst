@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"syscall"
 )
 
 // PMSInfo holds detected PMS details
@@ -145,7 +146,9 @@ func ScanForPMS() *PMSInfo {
 
 // getRunningProcesses returns a list of running process names on Windows
 func getRunningProcesses() []string {
-	out, err := exec.Command("tasklist", "/FO", "CSV", "/NH").Output()
+	cmd := exec.Command("tasklist", "/FO", "CSV", "/NH")
+	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+	out, err := cmd.Output()
 	if err != nil {
 		return nil
 	}
