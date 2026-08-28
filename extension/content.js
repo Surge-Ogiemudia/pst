@@ -24,6 +24,11 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.action === "STOP_SCANNING") {
     stopRequested = true;
   }
+
+  // CDP events come from background.js -> content.js -> sidepanel
+  if (msg.action === "CDP_SALE_DETECTED") {
+    chrome.runtime.sendMessage({ action: "SALE_DETECTED", data: msg.data });
+  }
 });
 
 async function startAutoScrape(paginationSelector) {
