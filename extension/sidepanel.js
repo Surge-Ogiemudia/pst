@@ -225,11 +225,14 @@ document.addEventListener("DOMContentLoaded", () => {
     rawRows = rawRows.map(row => {
       // Create a standard array format that the backend expects: [ID, Name, Qty, Price]
       return [
-        mapId >= 0 ? row[mapId] : '-',
-        mapName >= 0 ? row[mapName] : '-',
-        mapQty >= 0 ? row[mapQty] : 0,
-        mapPrice >= 0 ? row[mapPrice] : 0
+        (mapId >= 0 && row[mapId]) ? row[mapId] : '-',
+        (mapName >= 0 && row[mapName]) ? row[mapName] : '-',
+        (mapQty >= 0 && row[mapQty]) ? row[mapQty] : 0,
+        (mapPrice >= 0 && row[mapPrice]) ? row[mapPrice] : 0
       ];
+    }).filter(row => {
+      // Filter out rows that are entirely empty or just dashed out (like header rows)
+      return !(row[0] === '-' && row[1] === '-' && row[2] === 0 && row[3] === 0);
     });
 
     // Re-render table with mapped data
