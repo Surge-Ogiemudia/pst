@@ -3,11 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PST Assistant</title>
+  <title>PST Setup Wizard</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     :root {
       --bg: #0d1117;
       --surface: #161b22;
@@ -18,176 +17,154 @@
       --text: #f0f6fc;
       --muted: #8b949e;
       --red: #ff4444;
+      --green: #238636;
     }
-
     html, body { height: 100%; font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); font-size: 13px; }
+    .container { display: flex; flex-direction: column; height: 100vh; overflow-y: auto; }
 
-    .container { display: flex; flex-direction: column; height: 100vh; }
-
-    /* ── HEADER ── */
+    /* HEADER */
     .header {
-      display: flex; align-items: center; gap: 10px;
-      padding: 12px 14px;
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      flex-shrink: 0;
+      display: flex; align-items: center; gap: 10px; padding: 12px 14px;
+      background: var(--surface); border-bottom: 1px solid var(--border);
     }
     .avatar {
-      width: 32px; height: 32px; border-radius: 50%;
+      width: 32px; height: 32px; border-radius: 8px;
       background: linear-gradient(135deg, var(--accent), var(--accent2));
       display: flex; align-items: center; justify-content: center;
-      font-weight: 800; font-size: 13px; color: #000; flex-shrink: 0;
+      font-weight: 800; font-size: 14px; color: #000;
     }
     .header-info { flex: 1; }
-    .header-name { font-weight: 700; font-size: 13px; }
-    .header-status { font-size: 11px; color: var(--muted); display: flex; align-items: center; gap: 5px; margin-top: 1px; }
-    .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); flex-shrink: 0; }
-    .status-dot.online { background: var(--accent); animation: pulse 2s infinite; }
-    .status-dot.offline { background: var(--red); }
+    .header-name { font-weight: 700; font-size: 14px; }
+    .header-status { font-size: 11px; color: var(--muted); }
 
-    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+    /* STEPS WRAPPER */
+    .steps-container { padding: 20px; display: flex; flex-direction: column; gap: 24px; }
 
-    /* ── CONNECTOR BANNER ── */
-    .connector-banner {
-      padding: 8px 14px;
-      font-size: 11px;
-      display: flex; align-items: center; gap: 8px;
-      border-bottom: 1px solid var(--border);
-      flex-shrink: 0;
-    }
-    .connector-banner.connected { background: rgba(0,212,170,0.07); color: var(--accent); }
-    .connector-banner.disconnected { background: rgba(255,68,68,0.07); color: var(--red); }
-    .connector-banner.hidden { display: none; }
-
-    /* ── MESSAGES ── */
-    .messages {
-      flex: 1; overflow-y: auto; padding: 14px;
-      display: flex; flex-direction: column; gap: 10px;
-      scroll-behavior: smooth;
-    }
-    .messages::-webkit-scrollbar { width: 3px; }
-    .messages::-webkit-scrollbar-thumb { background: var(--surface2); border-radius: 3px; }
-
-    .msg-row { display: flex; align-items: flex-end; gap: 7px; }
-    .msg-row.user { flex-direction: row-reverse; }
-    .msg-avatar {
-      width: 22px; height: 22px; border-radius: 50%;
-      background: linear-gradient(135deg, var(--accent), var(--accent2));
-      display: flex; align-items: center; justify-content: center;
-      font-size: 9px; font-weight: 800; color: #000; flex-shrink: 0;
-    }
-    .bubble {
-      max-width: 85%; padding: 9px 12px; border-radius: 13px;
-      line-height: 1.6; font-size: 12.5px;
-      animation: fadeIn 0.25s ease;
-    }
-    @keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
-    .bubble-ai { background: var(--surface); border: 1px solid var(--border); border-bottom-left-radius: 3px; }
-    .bubble-user {
-      background: linear-gradient(135deg, rgba(0,212,170,.16), rgba(0,163,255,.16));
-      border: 1px solid rgba(0,212,170,.22); border-bottom-right-radius: 3px;
-    }
-
-    /* ── CHIPS ── */
-    .chip-row { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 9px; }
-    .chip {
-      padding: 4px 10px; border-radius: 20px;
-      border: 1px solid rgba(0,212,170,.3);
-      background: rgba(0,212,170,.05); color: var(--accent);
-      font-size: 11.5px; font-weight: 500; cursor: pointer;
-      transition: all .15s; user-select: none;
-    }
-    .chip:hover, .chip.selected { background: rgba(0,212,170,.18); border-color: var(--accent); }
-
-    /* ── TYPING ── */
-    .typing-indicator { display: flex; align-items: flex-end; gap: 7px; }
-    .typing-bubble {
+    .step-card {
       background: var(--surface); border: 1px solid var(--border);
-      border-radius: 13px; border-bottom-left-radius: 3px;
-      padding: 11px 14px; display: flex; gap: 4px; align-items: center;
+      border-radius: 12px; padding: 16px; position: relative;
+      opacity: 0.5; transition: opacity 0.3s; pointer-events: none;
     }
-    .typing-dot {
-      width: 5px; height: 5px; border-radius: 50%; background: var(--muted);
-      animation: bounce 1.2s infinite;
-    }
-    .typing-dot:nth-child(2){animation-delay:.2s} .typing-dot:nth-child(3){animation-delay:.4s}
-    @keyframes bounce { 0%,80%,100%{transform:translateY(0);opacity:.4} 40%{transform:translateY(-5px);opacity:1} }
+    .step-card.active { opacity: 1; pointer-events: auto; border-color: rgba(0,212,170,0.3); }
+    .step-card.completed { opacity: 0.8; pointer-events: none; border-color: var(--green); }
 
-    /* ── INPUT ── */
-    .input-area {
-      padding: 10px 14px; background: var(--surface);
-      border-top: 1px solid var(--border);
-      display: flex; gap: 8px; align-items: flex-end; flex-shrink: 0;
+    .step-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .step-num {
+      width: 24px; height: 24px; border-radius: 50%; background: var(--surface2);
+      display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px;
     }
-    textarea {
-      flex: 1; background: var(--surface2); border: 1px solid var(--border);
-      border-radius: 9px; color: var(--text); font-family: 'Inter', sans-serif;
-      font-size: 12.5px; padding: 8px 12px; resize: none;
-      min-height: 36px; max-height: 90px; outline: none;
-      transition: border-color .2s; line-height: 1.5;
-    }
-    textarea:focus { border-color: rgba(0,212,170,.4); }
-    textarea::placeholder { color: var(--muted); }
-    .send-btn {
-      width: 34px; height: 34px; border-radius: 9px;
-      background: linear-gradient(135deg, var(--accent), var(--accent2));
-      border: none; cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0; transition: all .2s;
-    }
-    .send-btn:hover { transform: scale(1.06); box-shadow: 0 3px 14px rgba(0,212,170,.3); }
-    .send-btn:active { transform: scale(.94); }
+    .step-card.active .step-num { background: rgba(0,212,170,0.1); color: var(--accent); }
+    .step-card.completed .step-num { background: var(--green); color: #fff; }
+    .step-title { font-weight: 600; font-size: 14px; }
 
-    /* ── STATUS BAR ── */
-    .status-bar {
-      padding: 5px 14px; background: rgba(0,212,170,.05);
-      border-top: 1px solid rgba(0,212,170,.1);
-      font-size: 11px; color: var(--accent);
-      display: flex; align-items: center; gap: 5px; flex-shrink: 0;
+    p.desc { color: var(--muted); line-height: 1.4; margin-bottom: 16px; }
+
+    /* BUTTONS */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      padding: 8px 16px; border-radius: 6px; font-weight: 500; font-size: 13px;
+      cursor: pointer; transition: all 0.2s; border: none; width: 100%; gap: 8px;
     }
+    .btn-primary { background: var(--accent); color: #000; }
+    .btn-primary:hover { background: #00e5b8; }
+    .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+    .btn-secondary:hover { background: #2b313a; }
+    
+    .btn-group { display: flex; gap: 8px; flex-direction: column; }
+
+    /* DATA TABLE PREVIEW */
+    .table-preview {
+      width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 11px;
+      background: #000; border-radius: 6px; overflow: hidden; display: none;
+    }
+    .table-preview th, .table-preview td {
+      padding: 6px 8px; text-align: left; border-bottom: 1px solid var(--border);
+    }
+    .table-preview th { color: var(--muted); font-weight: 500; background: var(--surface2); }
+    
+    /* ALERTS */
+    .alert { padding: 10px; border-radius: 6px; font-size: 12px; margin-bottom: 12px; display: none; }
+    .alert-info { background: rgba(0,163,255,0.1); color: var(--accent2); border: 1px solid rgba(0,163,255,0.2); }
+    .alert-success { background: rgba(35,134,54,0.1); color: #3fb950; border: 1px solid rgba(35,134,54,0.2); }
+
   </style>
 </head>
 <body>
-<div class="container">
-
-  <!-- HEADER -->
-  <div class="header">
-    <div class="avatar">P</div>
-    <div class="header-info">
-      <div class="header-name">PST Assistant</div>
-      <div class="header-status" id="headerStatus">
-        <div class="status-dot" id="headerDot"></div>
-        <span id="headerStatusText">Checking connector...</span>
+  <div class="container">
+    <div class="header">
+      <div class="avatar">P</div>
+      <div class="header-info">
+        <div class="header-name">PST Cloud Sync</div>
+        <div class="header-status">Setup Wizard</div>
       </div>
     </div>
-    <div style="font-size:10px;font-weight:700;color:var(--muted);letter-spacing:1px;">PST v1.0</div>
+
+    <div class="steps-container">
+      
+      <!-- STEP 1: INVENTORY -->
+      <div class="step-card active" id="step1">
+        <div class="step-header">
+          <div class="step-num">1</div>
+          <div class="step-title">Sync Inventory</div>
+        </div>
+        <p class="desc">Navigate to your PMS Inventory/Products page. If you have multiple pages, train the pagination button first.</p>
+        
+        <div class="alert alert-info" id="trainingAlert">Click the 'Next Page' button on your website now.</div>
+        
+        <div class="btn-group" id="s1-btns">
+          <button class="btn btn-secondary" id="btnTrainPage">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+            Train Pagination (Optional)
+          </button>
+          <button class="btn btn-primary" id="btnScanInventory">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            Scan Current Page
+          </button>
+        </div>
+
+        <!-- Table Preview injected here by JS -->
+        <table class="table-preview" id="inventoryTable">
+          <thead><tr><th>ID</th><th>Name</th><th>Qty</th><th>Price</th></tr></thead>
+          <tbody id="inventoryBody"></tbody>
+        </table>
+
+        <div class="btn-group" id="s1-confirm-btns" style="display:none; margin-top:12px;">
+          <button class="btn btn-primary" id="btnConfirmInventory">Looks Good!</button>
+        </div>
+      </div>
+
+      <!-- STEP 2: MOCK SALE -->
+      <div class="step-card" id="step2">
+        <div class="step-header">
+          <div class="step-num">2</div>
+          <div class="step-title">Mock Sale Test</div>
+        </div>
+        <p class="desc">Please perform a mock sale in your software right now. We are silently watching the network for the receipt.</p>
+        
+        <div class="alert alert-info" id="listeningAlert" style="display:block;">Listening for network responses...</div>
+        <div class="alert alert-success" id="saleSuccessAlert">Sale captured successfully!</div>
+
+        <table class="table-preview" id="saleTable">
+          <thead><tr><th>Item</th><th>Qty</th><th>Total</th></tr></thead>
+          <tbody id="saleBody"></tbody>
+        </table>
+
+        <div class="btn-group" id="s2-confirm-btns" style="display:none; margin-top:12px;">
+          <button class="btn btn-primary" id="btnConfirmSale">Confirm & Finish</button>
+        </div>
+      </div>
+
+      <!-- STEP 3: COMPLETE -->
+      <div class="step-card" id="step3">
+        <div class="step-header">
+          <div class="step-num">3</div>
+          <div class="step-title">Setup Complete</div>
+        </div>
+        <p class="desc" style="margin-bottom:0; color:#3fb950;">PST is now securely synced to your cloud provider. You can close this panel.</p>
+      </div>
+
+    </div>
   </div>
-
-  <!-- CONNECTOR BANNER -->
-  <div class="connector-banner hidden" id="connectorBanner">
-    <span id="connectorBannerText"></span>
-  </div>
-
-  <!-- MESSAGES -->
-  <div class="messages" id="messages"></div>
-
-  <!-- STATUS BAR -->
-  <div class="status-bar" id="statusBar" style="display:none">
-    <div class="status-dot online"></div>
-    <span id="statusText"></span>
-  </div>
-
-  <!-- INPUT -->
-  <div class="input-area">
-    <textarea id="input" placeholder="Type a message..." rows="1"></textarea>
-    <button class="send-btn" id="sendBtn">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5">
-        <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
-      </svg>
-    </button>
-  </div>
-
-</div>
-<script src="sidepanel.js"></script>
+  <script src="sidepanel.js"></script>
 </body>
 </html>

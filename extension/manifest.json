@@ -41,7 +41,9 @@
     "sidePanel",
     "storage",
     "tabs",
-    "notifications"
+    "notifications",
+    "scripting",
+    "activeTab"
   ],
 
   "host_permissions": [
